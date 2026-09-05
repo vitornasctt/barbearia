@@ -20,7 +20,7 @@
 - **Timezone único:** a aplicação assume o fuso da barbearia. Variável `TZ` (ex.: `America/Sao_Paulo`) definida no ambiente. Cálculo de dia-da-semana usa `Date.UTC(...)` para ser determinístico; comparações de "agora vs horário do slot" usam a hora local do processo.
 - **Passo de slot e antecedência vêm de `configuracao`** (`intervalo_minutos`, `antecedencia_min_horas`). Nunca hardcode `35`.
 - **Isolamento:** nada em `src/agenda/`, `src/lib/`, `src/services/` importa `express` ou `socket.io`.
-- **Testes:** `node:test`. Nenhum teste depende de outro; cada arquivo limpa o schema de teste no `beforeEach` via o harness.
+- **Testes:** `node:test`, com **`--test-concurrency=1`** no script `test` (arquivos rodam em série). Isso é obrigatório: todos os arquivos de teste compartilham o mesmo schema `test` no Supabase e vários dão `TRUNCATE` no `beforeEach` — em paralelo isso gera flakiness. Nenhum teste depende de outro; cada arquivo limpa o schema no `beforeEach` via o harness.
 - **Idioma:** identificadores, comentários e mensagens em pt-BR, seguindo os nomes do schema.
 - **Commits frequentes**, um por tarefa no mínimo, mensagem em pt-BR terminando com:
   `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`
@@ -78,7 +78,7 @@
   "type": "module",
   "engines": { "node": ">=20" },
   "scripts": {
-    "test": "node --env-file=.env --env-file=.env.test --test",
+    "test": "node --env-file=.env --env-file=.env.test --test --test-concurrency=1",
     "db:migrate": "node --env-file=.env scripts/migrate.js",
     "db:seed": "node --env-file=.env scripts/seed.js",
     "db:reset": "node --env-file=.env scripts/reset.js"
