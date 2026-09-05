@@ -1457,9 +1457,8 @@ test('agendamento ativo remove o slot exato e os sobrepostos', async () => {
   const { b, servicoId, cli } = await ctx();
   await agendar(b, cli, servicoId, '10:10', '10:45');
   const r = await horariosDisponiveis({ barbeiroId: b, data: DATA, servicoId, agora: CEDO });
-  assert.ok(!r.disponivel.includes('10:10'));
-  assert.ok(!r.disponivel.includes('09:35')); // 09:35–10:10 encosta, não sobrepõe → continua
-  assert.ok(r.disponivel.includes('09:35'));
+  assert.ok(!r.disponivel.includes('10:10'));               // slot exato bloqueado
+  assert.ok(r.disponivel.includes('09:35'));                // 09:35–10:10 encosta, não sobrepõe → continua livre
 });
 
 test('agendamento cancelado NÃO remove o slot', async () => {
