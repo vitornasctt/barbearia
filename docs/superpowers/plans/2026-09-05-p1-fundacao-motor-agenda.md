@@ -1289,21 +1289,22 @@ test('domingo (dia_semana 0) => fechado: dia_fechado', async () => {
   assert.equal(r.fechado, 'dia_fechado');
 });
 
+// 14:15 = 09:00 + 35*9, ou seja um slot real da grade (intervalo_minutos=35).
 test('lock de outra sessão remove o slot; o da própria sessão não', async () => {
   const bId = await barbeiro();
   await abrirSetembro(bId);
   await query(
     `INSERT INTO horarios_lock (barbeiro_id, data, horario, session_id, expira_em)
-     VALUES ($1, $2, '14:00', 'sessao-A', now() + interval '5 minutes')`, [bId, DATA]);
+     VALUES ($1, $2, '14:15', 'sessao-A', now() + interval '5 minutes')`, [bId, DATA]);
 
   const outro = await horariosDisponiveis({ barbeiroId: bId, data: DATA, servicoId: await servicoCorte(),
     sessionId: 'sessao-B', agora: new Date('2026-09-01T08:00:00') });
-  assert.ok(!outro.disponivel.includes('14:00'));
+  assert.ok(!outro.disponivel.includes('14:15'));
 
   cache.limparTudo();
   const dono = await horariosDisponiveis({ barbeiroId: bId, data: DATA, servicoId: await servicoCorte(),
     sessionId: 'sessao-A', agora: new Date('2026-09-01T08:00:00') });
-  assert.ok(dono.disponivel.includes('14:00'));
+  assert.ok(dono.disponivel.includes('14:15'));
 });
 ```
 
@@ -1391,7 +1392,7 @@ export async function horariosDisponiveis({
 - [ ] **Step 4: Rodar e ver passar**
 
 Run: `npm test -- test/agenda/disponibilidade-base.test.js`
-Expected: PASS (6 testes).
+Expected: PASS (5 testes).
 
 - [ ] **Step 5: Commit**
 
