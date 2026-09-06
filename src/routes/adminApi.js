@@ -14,6 +14,9 @@ import * as servicos from '../repos/servicos.js';
 import { requireAdmin } from '../auth/middleware.js';
 import * as templates from '../repos/templates.js';
 import * as mensagens from '../repos/mensagens.js';
+import * as comissoes from '../repos/comissoes.js';
+import * as configuracao from '../repos/configuracao.js';
+import { limiteMensagens } from '../auth/rateLimit.js';
 import { confirmarAgendamento, cancelarAgendamento } from '../agenda/agendar.js';
 import { processarPendentes } from '../services/mensageiro.js';
 import {
@@ -262,3 +265,78 @@ adminApi.post('/clientes/:id/anonimizar', requireAdmin, rota(async (req, res, ne
   if (r.rowCount === 0) return next(new ErroHttp('NAO_ENCONTRADO'));
   res.json({ ok: true });
 }));
+
+adminApi.get('/comissoes',
+  validarQuery(z.object({
+    ano: z.coerce.number().int(), mes: z.coerce.number().int().min(1).max(12),
+    barbeiro_id: z.coerce.number().int().positive().optional(),
+  })),
+  rota(async (req, res) => {
+    res.json(await comissoes.relatorio({ ano: req.query.ano, mes: req.query.mes, barbeiroId: req.query.barbeiro_id ?? null }));
+  }));
+
+adminApi.get('/configuracao', rota(async (req, res) => {
+  res.json(await configuracao.obter());
+}));
+
+adminApi.put('/configuracao', requireAdmin,
+  validarCorpo(z.object({
+    nome_barbearia: z.string().max(120).optional(),
+    endereco: z.string().optional(),
+    latitude: z.coerce.number().nullable().optional(),
+    longitude: z.coerce.number().nullable().optional(),
+    telefone_whatsapp: z.string().max(20).optional(),
+    intervalo_minutos: z.coerce.number().int().positive().optional(),
+    antecedencia_min_horas: z.coerce.number().int().nonnegative().optional(),
+    limite_dias_futuros: z.coerce.number().int().positive().optional(),
+    expediente: z.array(z.object({
+      dia_semana: z.number().int().min(0).max(6),
+      aberto: z.boolean(),
+      abre: z.string(),
+      fecha: z.string(),
+    })).length(7).optional(),
+  })),
+  rota(async (req, res) => {
+    const { expediente, ...campos } = req.body;
+    const nova = await configuracao.atualizar(campos, expediente);
+    cache.limparTudo();
+    res.json(nova);
+  }));
+
+adminApi.get('/templates', rota(async (req, res) => {
+  res.json({ templates: await templates.todos() });
+}));
+
+adminApi.put('/templates/:chave',
+  validarCorpo(z.object({ titulo: z.string().min(1).max(100), corpo: z.string().min(1), ativo: z.boolean() })),
+  rota(async (req, res, next) => {
+    const t = await templates.atualizar(req.params.chave, req.body);
+    if (!t) return next(new ErroHttp('NAO_ENCONTRADO'));
+    res.json({ template: t });
+  }));
+
+adminApi.get('/mensagens',
+  validarQuery(z.object({
+    agendamento_id: z.coerce.number().int().positive().optional(),
+    status: z.string().optional(),
+    page: z.coerce.number().int().positive().default(1),
+  })),
+  rota(async (req, res) => {
+    res.json(await mensagens.listar(req.query));
+  }));
+
+adminApi.post('/mensagens/enviar', limiteMensagens,
+  validarCorpo(z.object({
+    agendamento_id: z.coerce.number().int().positive(),
+    template_chave: z.string().min(1),
+  })),
+  rota(async (req, res, next) => {
+    const item = await agendamentos.porId(req.body.agendamento_id);
+    if (!item) return next(new ErroHttp('NAO_ENCONTRADO'));
+    await enfileirarTemplate(item, req.body.template_chave); // 404 silencioso se template inativo/ausente
+    const tpl = await templates.porChave(req.body.template_chave);
+    if (!tpl) return next(new ErroHttp('NAO_ENCONTRADO'));
+    await processarPendentes({ limite: 5 }).catch((e) => req.log?.error({ e }, 'worker'));
+    const lst = await mensagens.listar({ agendamento_id: item.id, page: 1 });
+    res.status(202).json({ mensagem: lst.itens[0] });
+  }));
