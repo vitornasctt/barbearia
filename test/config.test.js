@@ -29,3 +29,19 @@ test('TEST_SCHEMA default é "test" e rejeita identificador inválido', () => {
   assert.equal(carregarConfig(base).TEST_SCHEMA, 'test');
   assert.throws(() => carregarConfig({ ...base, TEST_SCHEMA: 'no-hyphens' }), /TEST_SCHEMA/);
 });
+
+test('novas vars de P2 têm defaults', () => {
+  const c = carregarConfig(base);
+  assert.equal(c.ORIGENS_PERMITIDAS, '');
+  assert.equal(c.COOKIE_SECURE, '');
+  assert.equal(c.WHATSAPP_APP_SECRET, '');
+  assert.equal(c.LOG_LEVEL, 'info');
+});
+
+test('SESSION_SECRET curto é rejeitado só em produção', () => {
+  assert.doesNotThrow(() => carregarConfig({ ...base, SESSION_SECRET: 'curto' }));
+  assert.throws(
+    () => carregarConfig({ ...base, NODE_ENV: 'production', SESSION_SECRET: 'curto' }),
+    /SESSION_SECRET/,
+  );
+});
