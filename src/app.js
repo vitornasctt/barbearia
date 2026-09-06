@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import pinoHttp from 'pino-http';
 import { config } from './config.js';
 import { errorHandler } from './http/erros.js';
+import { criarSessaoMiddleware } from './auth/sessao.js';
 import { saude } from './routes/saude.js';
 
 // As tasks seguintes de rota editam SÓ esta função (inserem app.use antes do comentário-âncora).
@@ -22,6 +23,7 @@ export function buildApp({ io = null } = {}) {
   app.use((req, res, next) => { req.io = io; next(); });
   app.use(helmet({ contentSecurityPolicy: false })); // CSP entra no P3 com os assets
   app.use(express.json({ limit: '100kb' }));
+  app.use(criarSessaoMiddleware());
 
   montarRotas(app);
 
