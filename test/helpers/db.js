@@ -6,6 +6,7 @@ const TABELAS = [
   'usuarios', 'clientes', 'servicos', 'configuracao', 'horario_funcionamento',
   'agenda_disponibilidade', 'bloqueios_agenda', 'agendamentos', 'horarios_lock',
   'templates_mensagem', 'mensagens_whatsapp', 'otp_codigos', 'logs_acesso',
+  'session',
 ];
 
 let migrado = false;
