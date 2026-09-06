@@ -18,10 +18,10 @@
 - **SQL 100% parametrizado.** Interpolar só constantes internas do código e o identificador `schema` (já validado por regex no `config`).
 - **O motor (`src/agenda/*`) não muda e não conhece HTTP.** Emissão de eventos de tempo real e `cache.invalidarData` acontecem **só na camada de rota** (design pai §4.4 passo 8), nunca dentro de `src/agenda/*` nem `src/repos/*`.
 - **Nada em `src/agenda/`, `src/lib/`, `src/repos/`, `src/services/` importa `express` ou `socket.io`.** Só `src/app.js`, `src/server.js`, `src/routes/*`, `src/http/*`, `src/auth/*` e `src/realtime/*` podem.
-- **Forma de erro HTTP:** toda resposta de erro é `{ erro: 'CODIGO_MAIUSCULO', ... }`. O `mapaErroHttp` (Task A2) traduz códigos do motor para status. Exceção não mapeada → `500 { erro: 'ERRO_INTERNO' }` (stack logada, nunca no corpo).
+- **Forma de erro HTTP:** toda resposta de erro é `{ erro: 'CODIGO_MAIUSCULO', ... }`. O `mapaErroHttp` (Task 2) traduz códigos do motor para status. Exceção não mapeada → `500 { erro: 'ERRO_INTERNO' }` (stack logada, nunca no corpo).
 - **Timezone:** a app assume o fuso da barbearia via `TZ` no ambiente. Cálculo de "hoje"/mês usa `src/lib/datas.js`; nunca `new Date()` cru para lógica de calendário nas rotas.
 - **Idioma:** identificadores, comentários e mensagens em pt-BR.
-- **Testes:** `node:test` + `supertest` (rotas, sem `listen`) + `socket.io-client` (tempo real, server efêmero em porta 0). Cada arquivo: `beforeEach` = `prepararBanco()` + `semearBase()` + `cache.limparTudo()` **+ `resetRateLimit()`** (de `src/auth/rateLimit.js`, existe a partir da Task B11) em todo arquivo de teste HTTP que bate em `/api/auth/*` ou `/api/admin/mensagens/enviar`. Toda rota nova ganha teste no mesmo commit (TDD).
+- **Testes:** `node:test` + `supertest` (rotas, sem `listen`) + `socket.io-client` (tempo real, server efêmero em porta 0). Cada arquivo: `beforeEach` = `prepararBanco()` + `semearBase()` + `cache.limparTudo()` **+ `resetRateLimit()`** (de `src/auth/rateLimit.js`, existe a partir da Task 11) em todo arquivo de teste HTTP que bate em `/api/auth/*` ou `/api/admin/mensagens/enviar`. Toda rota nova ganha teste no mesmo commit (TDD).
 - **Commits frequentes**, um por tarefa no mínimo, mensagem em pt-BR terminando com:
   `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`
 
@@ -67,7 +67,7 @@
 
 ---
 
-### Task A1: Dependências, config e scripts
+### Task 1: Dependências, config e scripts
 
 **Files:**
 - Modify: `package.json`, `.env.example`, `src/config.js`
@@ -196,7 +196,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task A2: `src/http/async.js` e `src/http/erros.js`
+### Task 2: `src/http/async.js` e `src/http/erros.js`
 
 **Files:**
 - Create: `src/http/async.js`, `src/http/erros.js`
@@ -321,7 +321,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task A3: `src/http/validar.js`
+### Task 3: `src/http/validar.js`
 
 **Files:**
 - Create: `src/http/validar.js`
@@ -408,7 +408,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task A4: `src/http/origem.js`
+### Task 4: `src/http/origem.js`
 
 **Files:**
 - Create: `src/http/origem.js`
@@ -497,7 +497,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task A5: `src/lib/celular.js` e `src/lib/datas.js`
+### Task 5: `src/lib/celular.js` e `src/lib/datas.js`
 
 **Files:**
 - Create: `src/lib/celular.js`, `src/lib/datas.js`
@@ -615,7 +615,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task A6: `src/app.js` + `GET /healthz`
+### Task 6: `src/app.js` + `GET /healthz`
 
 **Files:**
 - Create: `src/app.js`, `src/routes/saude.js`
@@ -735,7 +735,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task B7: `src/auth/senha.js` + refactor do seed
+### Task 7: `src/auth/senha.js` + refactor do seed
 
 **Files:**
 - Create: `src/auth/senha.js`
@@ -805,7 +805,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task B8: Migração `002_session.sql`
+### Task 8: Migração `002_session.sql`
 
 **Files:**
 - Create: `src/db/migrations/002_session.sql`
@@ -871,7 +871,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task B9: `src/auth/sessao.js` + fiação no app
+### Task 9: `src/auth/sessao.js` + fiação no app
 
 **Files:**
 - Create: `src/auth/sessao.js`
@@ -991,7 +991,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task B10: `src/auth/middleware.js`
+### Task 10: `src/auth/middleware.js`
 
 **Files:**
 - Create: `src/auth/middleware.js`
@@ -1095,7 +1095,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task B11: Repos de auth + `src/auth/rateLimit.js`
+### Task 11: Repos de auth + `src/auth/rateLimit.js`
 
 **Files:**
 - Create: `src/repos/usuarios.js`, `src/repos/clientes.js`, `src/repos/logs.js`, `src/auth/rateLimit.js`
@@ -1261,7 +1261,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task B12: `src/routes/auth.js` — login / logout
+### Task 12: `src/routes/auth.js` — login / logout
 
 **Files:**
 - Create: `src/routes/auth.js`
@@ -1433,7 +1433,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task C13: `src/realtime/eventos.js` + `src/realtime/emitir.js`
+### Task 13: `src/realtime/eventos.js` + `src/realtime/emitir.js`
 
 **Files:**
 - Create: `src/realtime/eventos.js`, `src/realtime/emitir.js`
@@ -1562,7 +1562,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task C14: `src/realtime/io.js` — Socket.io com salas por sessão
+### Task 14: `src/realtime/io.js` — Socket.io com salas por sessão
 
 **Files:**
 - Create: `src/realtime/io.js`
@@ -1681,7 +1681,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task H15: `src/services/whatsapp.js` + `src/services/mensageiro.js`
+### Task 15: `src/services/whatsapp.js` + `src/services/mensageiro.js`
 
 **Files:**
 - Create: `src/services/whatsapp.js`, `src/services/mensageiro.js`
@@ -1843,7 +1843,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task H16: `src/services/sms.js` + `src/services/mapa.js`
+### Task 16: `src/services/sms.js` + `src/services/mapa.js`
 
 **Files:**
 - Create: `src/services/sms.js`, `src/services/mapa.js`
@@ -2004,7 +2004,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task D17: Repos `servicos`, `configuracao`, `disponibilidadeMeses`, `bloqueios`
+### Task 17: Repos `servicos`, `configuracao`, `disponibilidadeMeses`, `bloqueios`
 
 **Files:**
 - Create: `src/repos/servicos.js`, `src/repos/configuracao.js`, `src/repos/disponibilidadeMeses.js`, `src/repos/bloqueios.js`
@@ -2259,7 +2259,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task D18: Repo `agendamentos` (listagem, dashboard, comissões, templates, mensagens)
+### Task 18: Repo `agendamentos` (listagem, dashboard, comissões, templates, mensagens)
 
 **Files:**
 - Create: `src/repos/agendamentos.js`, `src/repos/comissoes.js`, `src/repos/templates.js`, `src/repos/mensagens.js`
@@ -2554,7 +2554,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task E19: `src/routes/publicas.js` parte 1 — servicos / dias / horarios
+### Task 19: `src/routes/publicas.js` parte 1 — servicos / dias / horarios
 
 **Files:**
 - Create: `src/routes/publicas.js`
@@ -2696,7 +2696,7 @@ No topo: `import { publicas } from './routes/publicas.js';`. Em `montarRotas`, a
   app.use('/api/agenda', anexarSessaoAnonima, exigirOrigemConfiavel, publicas);
 ```
 
-(`anexarSessaoAnonima` e `exigirOrigemConfiavel` já importados na Task B12.)
+(`anexarSessaoAnonima` e `exigirOrigemConfiavel` já importados na Task 12.)
 
 - [ ] **Step 5: Rodar e ver passar**
 
@@ -2714,7 +2714,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task E20: `src/routes/publicas.js` parte 2 — lock / renovar / liberar
+### Task 20: `src/routes/publicas.js` parte 2 — lock / renovar / liberar
 
 **Files:**
 - Modify: `src/routes/publicas.js`
@@ -2851,7 +2851,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task E21: `src/routes/publicas.js` parte 3 — cadastro / confirmar
+### Task 21: `src/routes/publicas.js` parte 3 — cadastro / confirmar
 
 **Files:**
 - Modify: `src/routes/publicas.js`
@@ -3019,7 +3019,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task F22: `src/routes/clienteApi.js` — área do cliente
+### Task 22: `src/routes/clienteApi.js` — área do cliente
 
 **Files:**
 - Create: `src/routes/clienteApi.js`
@@ -3219,7 +3219,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task G23: `src/routes/adminApi.js` parte 1 — dashboard / agendamentos / status / criação manual
+### Task 23: `src/routes/adminApi.js` parte 1 — dashboard / agendamentos / status / criação manual
 
 **Files:**
 - Create: `src/routes/adminApi.js`
@@ -3477,7 +3477,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task G24: `src/routes/adminApi.js` parte 2 — meses / bloqueios
+### Task 24: `src/routes/adminApi.js` parte 2 — meses / bloqueios
 
 **Files:**
 - Modify: `src/routes/adminApi.js`
@@ -3637,7 +3637,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task G25: `src/routes/adminApi.js` parte 3 — serviços / clientes / anonimizar
+### Task 25: `src/routes/adminApi.js` parte 3 — serviços / clientes / anonimizar
 
 **Files:**
 - Modify: `src/routes/adminApi.js`
@@ -3821,7 +3821,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task G26: `src/routes/adminApi.js` parte 4 — comissões / configuração / templates / mensagens
+### Task 26: `src/routes/adminApi.js` parte 4 — comissões / configuração / templates / mensagens
 
 **Files:**
 - Modify: `src/routes/adminApi.js`
@@ -3995,7 +3995,7 @@ adminApi.post('/mensagens/enviar', limiteMensagens,
   }));
 ```
 
-> Ajuste em `enfileirarTemplate` (Task G23): quando `tpl` for `null`/inativo a função retorna sem lançar; a rota `POST /mensagens/enviar` checa `templates.porChave` logo depois e devolve `404` se não existir. Se existir mas inativo, o enfileiramento é pulado e a resposta traz a última mensagem existente (ou `undefined` → `202 { mensagem: null }`). Documente esse caso no teste apenas se quiser; o teste dado usa um template ativo.
+> Ajuste em `enfileirarTemplate` (Task 23): quando `tpl` for `null`/inativo a função retorna sem lançar; a rota `POST /mensagens/enviar` checa `templates.porChave` logo depois e devolve `404` se não existir. Se existir mas inativo, o enfileiramento é pulado e a resposta traz a última mensagem existente (ou `undefined` → `202 { mensagem: null }`). Documente esse caso no teste apenas se quiser; o teste dado usa um template ativo.
 
 - [ ] **Step 4: Rodar e ver passar**
 
@@ -4018,7 +4018,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task G27: `src/routes/webhooks.js` — `/webhooks/whatsapp`
+### Task 27: `src/routes/webhooks.js` — `/webhooks/whatsapp`
 
 **Files:**
 - Create: `src/routes/webhooks.js`
@@ -4167,7 +4167,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task I28: `src/server.js` — HTTP + Socket.io + cron + shutdown, e teste de tempo real ponta a ponta
+### Task 28: `src/server.js` — HTTP + Socket.io + cron + shutdown, e teste de tempo real ponta a ponta
 
 **Files:**
 - Create: `src/server.js`
@@ -4320,7 +4320,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task J29: README do P2, `.env.example` final e suíte completa
+### Task 29: README do P2, `.env.example` final e suíte completa
 
 **Files:**
 - Modify: `README.md`
@@ -4386,7 +4386,7 @@ driver real da WhatsApp Cloud API exercitado com credencial.
 
 - [ ] **Step 2: Verificar `.env.example`**
 
-Conferir que `.env.example` contém (da Task A1): `ORIGENS_PERMITIDAS=`, `COOKIE_SECURE=`,
+Conferir que `.env.example` contém (da Task 1): `ORIGENS_PERMITIDAS=`, `COOKIE_SECURE=`,
 `WHATSAPP_APP_SECRET=`, `LOG_LEVEL=info`. Se faltar, acrescentar.
 
 - [ ] **Step 3: Rodar a suíte inteira 3×**
