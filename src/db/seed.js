@@ -30,7 +30,8 @@ const SERVICOS = [
 
 export async function semear(exec = pool) {
   await exec.query(
-    `INSERT INTO configuracao (id, nome_barbearia) VALUES (1, 'Minha Barbearia')
+    `INSERT INTO configuracao (id, nome_barbearia, telefone_whatsapp, endereco, latitude, longitude)
+     VALUES (1, 'Minha Barbearia', '5511999990000', 'Rua Exemplo, 123 - Sao Paulo', -23.55, -46.63)
      ON CONFLICT (id) DO NOTHING`,
   );
 
