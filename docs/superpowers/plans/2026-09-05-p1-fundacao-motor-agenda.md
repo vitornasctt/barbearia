@@ -2,23 +2,25 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Entregar a fundação do backend (projeto, banco, migrations, seed) e todo o motor de agenda (`src/agenda/`) com locks e transações anti-race-condition, coberto por testes contra um PostgreSQL real.
+**Goal:** Entregar a fundação do backend (projeto, banco, migrations, seed) e todo o motor de agenda (`src/agenda/`) com locks e transações anti-race-condition, coberto por testes contra um PostgreSQL real (instância Supabase, schema `test`).
 
 **Architecture:** Um pacote Node ESM. A camada de banco expõe `query()` e `withTransaction()` sobre um pool `pg`. O motor de agenda é um conjunto de módulos puros de lógica temporal (`lib/`) mais funções assíncronas que recebem um executor SQL (`query` do pool ou o client de uma transação) e devolvem dados — nenhuma dependência de Express ou Socket.io. Exclusão mútua de horários é garantida no banco por um índice único parcial em `agendamentos` e por `UNIQUE` + `ON CONFLICT` condicional em `horarios_lock`.
 
-**Tech Stack:** Node 20 LTS, ESM, PostgreSQL 16, `pg`, `bcrypt`, `zod`, `node:test`, Docker Compose (Postgres local para dev/teste).
+**Tech Stack:** Node 20+ (máquina de dev tem Node 24), ESM, PostgreSQL 17 (Supabase gerenciado), `pg`, `bcrypt`, `zod`, `node:test`.
 
 **Spec:** `docs/superpowers/specs/2026-09-05-barbearia-nucleo-design.md` (seções 2, 3, 4, 11).
 
 ## Global Constraints
 
-- **Runtime:** Node 20 LTS. `package.json` tem `"type": "module"`. Sempre `import`/`export`, nunca `require`.
-- **Banco:** PostgreSQL 16. Dinheiro em `NUMERIC(10,2)`; tempo em `TIMESTAMPTZ`; horas do dia em `TIME`.
-- **SQL parametrizado sempre.** Nunca interpolar valor vindo de usuário/parâmetro numa string SQL. Constantes inteiras internas (ex.: duração do lock) podem ser interpoladas.
+- **Runtime:** Node 20 ou superior. `package.json` tem `"type": "module"` e `"engines": { "node": ">=20" }`. Sempre `import`/`export`, nunca `require`.
+- **Banco:** PostgreSQL 17, instância **Supabase** (não há Docker nem Postgres local nesta máquina). Conexão via Session Pooler, **exige SSL** (`ssl: { rejectUnauthorized: false }` no `pg.Pool`). Dinheiro em `NUMERIC(10,2)`; tempo em `TIMESTAMPTZ`; horas do dia em `TIME`.
+- **Isolamento de teste por schema (não por banco):** o Supabase free tem um único banco (`postgres`) e não permite `CREATE DATABASE`. Portanto: quando `NODE_ENV=test`, o pool conecta com `search_path` apontando para o schema definido em `config.TEST_SCHEMA` (default `test`); migrations, seed e harness operam nesse schema; `db:reset` e o desenvolvimento usam o schema `public`. Os dois nunca se tocam. Não existe `DATABASE_URL_TEST`.
+- **Variáveis de ambiente:** `.env` (dev, com `DATABASE_URL` e o segredo) e `.env.test` (só `NODE_ENV=test` e credenciais de admin de teste) **já existem na máquina, criados fora deste plano e git-ignorados**. As tarefas criam apenas os `*.example` correspondentes (sem segredos). `npm test` = `node --env-file=.env --env-file=.env.test --test` (o segundo `--env-file` sobrepõe o primeiro).
+- **SQL parametrizado sempre.** Nunca interpolar valor vindo de usuário/parâmetro numa string SQL. Constantes internas controladas pelo código (duração do lock; nome do schema já validado por regex no `config`) podem ser interpoladas.
 - **Timezone único:** a aplicação assume o fuso da barbearia. Variável `TZ` (ex.: `America/Sao_Paulo`) definida no ambiente. Cálculo de dia-da-semana usa `Date.UTC(...)` para ser determinístico; comparações de "agora vs horário do slot" usam a hora local do processo.
 - **Passo de slot e antecedência vêm de `configuracao`** (`intervalo_minutos`, `antecedencia_min_horas`). Nunca hardcode `35`.
 - **Isolamento:** nada em `src/agenda/`, `src/lib/`, `src/services/` importa `express` ou `socket.io`.
-- **Testes:** `node:test`. Banco de teste separado, configurado por `.env.test` (com `NODE_ENV=test`). Nenhum teste depende de outro; cada arquivo limpa o banco no `beforeEach`.
+- **Testes:** `node:test`, com **`--test-concurrency=1`** no script `test` (arquivos rodam em série). Isso é obrigatório: todos os arquivos de teste compartilham o mesmo schema `test` no Supabase e vários dão `TRUNCATE` no `beforeEach` — em paralelo isso gera flakiness. Nenhum teste depende de outro; cada arquivo limpa o schema no `beforeEach` via o harness.
 - **Idioma:** identificadores, comentários e mensagens em pt-BR, seguindo os nomes do schema.
 - **Commits frequentes**, um por tarefa no mínimo, mensagem em pt-BR terminando com:
   `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`
@@ -29,7 +31,7 @@
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `package.json`, `.nvmrc`, `docker-compose.yml`, `.env.example`, `.env.test.example` | Scaffold, dependências, Postgres local, contrato de ambiente |
+| `package.json`, `.nvmrc`, `.env.example`, `.env.test.example` | Scaffold, dependências, contrato de ambiente (Supabase; sem Docker) |
 | `src/config.js` | Lê e valida `process.env` com `zod`; exporta objeto `config` |
 | `src/lib/tempo.js` | Funções puras de tempo: `paraMinutos`, `paraHHMM`, `adicionarMinutos`, `sobrepoe` |
 | `src/lib/template.js` | `renderizarTemplate(corpo, vars)` — substitui `{{chave}}` |
@@ -51,16 +53,20 @@
 
 ---
 
-### Task 1: Scaffold do projeto, Postgres local e contrato de ambiente
+### Task 1: Scaffold do projeto e contrato de ambiente (Supabase, sem Docker)
 
 **Files:**
-- Create: `package.json`, `.nvmrc`, `docker-compose.yml`, `.env.example`, `.env.test.example`
-- Modify: `.gitignore`
+- Create: `package.json`, `.nvmrc`, `.env.example`, `.env.test.example`
 - Create: `src/.gitkeep`, `test/.gitkeep`
+
+**Contexto dado pelo controlador (não repetir descoberta):**
+- `.env` e `.env.test` **já existem** na raiz, git-ignorados, com o `DATABASE_URL` real do Supabase e o `SESSION_SECRET`. **Não crie, não sobrescreva, não leia esses dois.** Você cria só os `*.example`.
+- `.gitignore` **já contém** `.env`, `.env.test` e `.superpowers/` — **não mexa no `.gitignore`**.
+- Não há Docker nem Postgres local; o banco é remoto (Supabase). Nenhum passo sobe container.
 
 **Interfaces:**
 - Consumes: nada.
-- Produces: scripts npm `test`, `db:migrate`, `db:seed`, `db:reset`; um Postgres 16 acessível via `DATABASE_URL` / `DATABASE_URL_TEST`.
+- Produces: scripts npm `test`, `db:migrate`, `db:seed`, `db:reset`; Postgres acessível via `DATABASE_URL` (schema `public` em dev; schema de `TEST_SCHEMA` quando `NODE_ENV=test`).
 
 - [ ] **Step 1: Criar `package.json`**
 
@@ -70,9 +76,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=20 <21" },
+  "engines": { "node": ">=20" },
   "scripts": {
-    "test": "node --env-file=.env.test --test",
+    "test": "node --env-file=.env --env-file=.env.test --test --test-concurrency=1",
     "db:migrate": "node --env-file=.env scripts/migrate.js",
     "db:seed": "node --env-file=.env scripts/seed.js",
     "db:reset": "node --env-file=.env scripts/reset.js"
@@ -91,32 +97,16 @@
 20
 ```
 
-- [ ] **Step 3: Criar `docker-compose.yml`**
-
-```yaml
-services:
-  db:
-    image: postgres:16
-    environment:
-      POSTGRES_USER: barbearia
-      POSTGRES_PASSWORD: barbearia
-      POSTGRES_DB: barbearia
-    ports:
-      - "5432:5432"
-    volumes:
-      - dbdata:/var/lib/postgresql/data
-volumes:
-  dbdata:
-```
-
-- [ ] **Step 4: Criar `.env.example`**
+- [ ] **Step 3: Criar `.env.example`**
 
 ```
 NODE_ENV=development
 PORT=3000
 TZ=America/Sao_Paulo
-DATABASE_URL=postgres://barbearia:barbearia@localhost:5432/barbearia
-DATABASE_URL_TEST=postgres://barbearia:barbearia@localhost:5432/barbearia_test
+# Supabase — Session Pooler (porta 5432). Se a senha tiver caractere especial,
+# ela precisa estar percent-encoded nesta URL.
+DATABASE_URL=postgresql://postgres.<project-ref>:<senha>@aws-0-<regiao>.pooler.supabase.com:5432/postgres
+TEST_SCHEMA=test
 SESSION_SECRET=troque-isto-por-64-hex-aleatorios
 APP_URL=http://localhost:3000
 ADMIN_EMAIL=dono@barbearia.com
@@ -130,49 +120,29 @@ TWILIO_AUTH_TOKEN=
 TWILIO_VERIFY_SERVICE_SID=
 ```
 
-- [ ] **Step 5: Criar `.env.test.example`**
+- [ ] **Step 4: Criar `.env.test.example`**
 
 ```
+# Sobrepõe .env no modo teste. DATABASE_URL, TZ etc. vêm do .env.
 NODE_ENV=test
-TZ=America/Sao_Paulo
-DATABASE_URL=postgres://barbearia:barbearia@localhost:5432/barbearia_test
-DATABASE_URL_TEST=postgres://barbearia:barbearia@localhost:5432/barbearia_test
-SESSION_SECRET=segredo-de-teste-nao-usar-em-producao
-APP_URL=http://localhost:3000
 ADMIN_EMAIL=dono@teste.local
 ADMIN_SENHA=teste123456
 ```
 
-- [ ] **Step 6: Acrescentar ao `.gitignore`**
-
-```
-.env
-.env.test
-```
-
-- [ ] **Step 7: Subir o Postgres e criar o banco de teste**
+- [ ] **Step 5: `npm install` e verificar a suíte vazia**
 
 Run:
 ```bash
-docker compose up -d db
-sleep 3
-docker compose exec -T db psql -U barbearia -d barbearia -c "CREATE DATABASE barbearia_test;"
-cp .env.example .env
-cp .env.test.example .env.test
 npm install
+npm test
 ```
-Expected: `docker compose ps` mostra o serviço `db` como `running`; `npm install` conclui sem erro.
+Expected: `npm install` conclui sem erro; `npm test` executa, encontra 0 testes e sai com código 0 (mensagem "tests 0"). (Os `--env-file=.env`/`.env.test` já existem na máquina.)
 
-- [ ] **Step 8: Verificar que a suíte roda vazia**
-
-Run: `npm test`
-Expected: Node executa, encontra 0 testes, sai com código 0 (mensagem "tests 0").
-
-- [ ] **Step 9: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add -A
-git commit -m "chore: scaffold do projeto, Postgres via Docker e contrato de ambiente
+git commit -m "chore: scaffold do projeto e contrato de ambiente (Supabase, sem Docker)
 
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ```
@@ -349,7 +319,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 - Produces:
   - `carregarConfig(env = process.env) => Config` — lança `Error` com mensagem legível se inválido.
   - `config: Config` — resultado de `carregarConfig(process.env)` no import.
-  - `Config` tem: `NODE_ENV` (`'development'|'test'|'production'`), `PORT` (number), `TZ`, `DATABASE_URL`, `DATABASE_URL_TEST?`, `SESSION_SECRET`, `APP_URL`, `ADMIN_EMAIL`, `ADMIN_SENHA`, e as chaves de integração como string (default `''`).
+  - `Config` tem: `NODE_ENV` (`'development'|'test'|'production'`), `PORT` (number), `TZ`, `DATABASE_URL`, `TEST_SCHEMA` (string, default `'test'`, validada como identificador SQL seguro), `SESSION_SECRET`, `APP_URL`, `ADMIN_EMAIL`, `ADMIN_SENHA`, e as chaves de integração como string (default `''`). **Não existe `DATABASE_URL_TEST`.**
 
 - [ ] **Step 1: Escrever o teste que falha**
 
@@ -381,6 +351,11 @@ test('coage PORT para número', () => {
 test('lança erro citando o campo quando DATABASE_URL falta', () => {
   assert.throws(() => carregarConfig({ ...base, DATABASE_URL: undefined }), /DATABASE_URL/);
 });
+
+test('TEST_SCHEMA default é "test" e rejeita identificador inválido', () => {
+  assert.equal(carregarConfig(base).TEST_SCHEMA, 'test');
+  assert.throws(() => carregarConfig({ ...base, TEST_SCHEMA: 'no-hyphens' }), /TEST_SCHEMA/);
+});
 ```
 
 - [ ] **Step 2: Rodar e ver falhar**
@@ -399,7 +374,7 @@ const schema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   TZ: z.string().default('America/Sao_Paulo'),
   DATABASE_URL: z.string().min(1),
-  DATABASE_URL_TEST: z.string().optional(),
+  TEST_SCHEMA: z.string().regex(/^[a-z_][a-z0-9_]*$/, 'deve ser um identificador SQL válido (minúsculas, _, dígitos)').default('test'),
   SESSION_SECRET: z.string().min(16).default('dev-secret-troque-isto-000000'),
   APP_URL: z.string().default('http://localhost:3000'),
   ADMIN_EMAIL: z.string().email().default('admin@local.test'),
@@ -428,7 +403,7 @@ export const config = carregarConfig();
 - [ ] **Step 4: Rodar e ver passar**
 
 Run: `npm test -- test/config.test.js`
-Expected: PASS (3 testes). (`.env.test` já define `DATABASE_URL`, então o import de `config` não quebra.)
+Expected: PASS (4 testes). (`.env` já define `DATABASE_URL`, então o import de `config` não quebra.)
 
 - [ ] **Step 5: Commit**
 
@@ -451,10 +426,12 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 - Consumes: `config` de `src/config.js`.
 - Produces:
   - `pool: pg.Pool`
+  - `schema: string` — `config.TEST_SCHEMA` quando `NODE_ENV==='test'`, senão `'public'`. Exportado para o migrate/harness.
   - `query(text: string, params?: any[]) => Promise<pg.QueryResult>`
   - `withTransaction(fn: (client) => Promise<T>) => Promise<T>` — `BEGIN`; `COMMIT` no sucesso; `ROLLBACK` e re-`throw` no erro; sempre libera o client.
   - `fecharPool() => Promise<void>`
-- Regra de seleção de banco: se `config.NODE_ENV === 'test'`, usa `DATABASE_URL_TEST ?? DATABASE_URL`; senão `DATABASE_URL`.
+- **Sempre** conecta com `ssl: { rejectUnauthorized: false }` (Supabase exige; inofensivo em local).
+- **Search path:** o `pg.Pool` recebe `options: '-c search_path=<schema>'`, então toda conexão já entra no schema certo — SQL não-qualificado (`CREATE TABLE usuarios`, `SELECT ... FROM agendamentos`) resolve para `test` em teste e `public` em dev, sem qualquer outra mudança nas queries.
 
 - [ ] **Step 1: Escrever o teste que falha**
 
@@ -462,9 +439,15 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 // test/db/pool.test.js
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { query, withTransaction, fecharPool } from '../../src/db/pool.js';
+import { query, withTransaction, fecharPool, schema } from '../../src/db/pool.js';
 
+// o pool entra com search_path=<schema de teste>; garante que ele exista
+test.before(() => query(`CREATE SCHEMA IF NOT EXISTS ${schema}`));
 test.after(() => fecharPool());
+
+test('schema exportado é o de teste', () => {
+  assert.equal(schema, 'test');
+});
 
 test('query executa SELECT simples', async () => {
   const r = await query('SELECT 1 AS n');
@@ -510,12 +493,14 @@ Expected: FAIL — módulo não encontrado.
 import pg from 'pg';
 import { config } from '../config.js';
 
-const connectionString =
-  config.NODE_ENV === 'test'
-    ? config.DATABASE_URL_TEST ?? config.DATABASE_URL
-    : config.DATABASE_URL;
+export const schema = config.NODE_ENV === 'test' ? config.TEST_SCHEMA : 'public';
 
-export const pool = new pg.Pool({ connectionString, max: 10 });
+export const pool = new pg.Pool({
+  connectionString: config.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+  options: `-c search_path=${schema}`,
+  max: 10,
+});
 
 export function query(text, params) {
   return pool.query(text, params);
@@ -544,7 +529,7 @@ export function fecharPool() {
 - [ ] **Step 4: Rodar e ver passar**
 
 Run: `npm test -- test/db/pool.test.js`
-Expected: PASS (3 testes). Pré-requisito: `docker compose up -d db` e banco `barbearia_test` criado (Task 1, Step 7).
+Expected: PASS (4 testes). Pré-requisito: `.env`/`.env.test` presentes (Supabase acessível).
 
 - [ ] **Step 5: Commit**
 
@@ -566,10 +551,12 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 - Test: `test/db/migrate.test.js`
 
 **Interfaces:**
-- Consumes: `pool` de `src/db/pool.js`.
+- Consumes: `pool` **e `schema`** de `src/db/pool.js`.
 - Produces:
-  - `migrar({ silent = false } = {}) => Promise<void>` — cria `schema_migrations (nome text pk, aplicada_em timestamptz)`, aplica em ordem alfabética os `.sql` de `src/db/migrations/` ainda não registrados, cada um numa transação, e registra o nome. Idempotente.
-- Após rodar, existem todas as tabelas da spec seção 3.
+  - `migrar({ silent = false } = {}) => Promise<void>` — primeiro `CREATE SCHEMA IF NOT EXISTS ${schema}` (o `schema` vem do pool, já validado por regex no config); depois cria `schema_migrations (nome text pk, aplicada_em timestamptz)`, aplica em ordem alfabética os `.sql` de `src/db/migrations/` ainda não registrados, cada um numa transação, e registra o nome. Idempotente. Como o pool conecta com `search_path=${schema}`, tudo é criado nesse schema (`public` em dev, `test` em teste) e o `schema_migrations` é por-schema.
+- Após rodar, existem todas as tabelas da spec seção 3 no schema corrente.
+
+**Contexto do controlador:** o texto da tarefa manda "copiar verbatim da spec seção 3". O implementador deve **ler `docs/superpowers/specs/2026-09-05-barbearia-nucleo-design.md` seção 3** e transcrever aquele bloco SQL inteiro para `001_init.sql` (sem `CREATE SCHEMA`, sem `schema_migrations`, sem a tabela `session`).
 
 - [ ] **Step 1: Escrever o teste que falha**
 
@@ -578,7 +565,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { migrar } from '../../src/db/migrate.js';
-import { query, fecharPool } from '../../src/db/pool.js';
+import { query, fecharPool, schema } from '../../src/db/pool.js';
 
 test.after(() => fecharPool());
 
@@ -591,7 +578,7 @@ test('migrar cria as tabelas do schema e é idempotente', async () => {
     'templates_mensagem','mensagens_whatsapp','otp_codigos','logs_acesso','schema_migrations'];
   const r = await query(
     `SELECT table_name FROM information_schema.tables
-     WHERE table_schema='public' AND table_name = ANY($1)`, [nomes]);
+     WHERE table_schema=$2 AND table_name = ANY($1)`, [nomes, schema]);
   assert.equal(r.rows.length, nomes.length);
 });
 
@@ -609,7 +596,7 @@ Expected: FAIL — `src/db/migrate.js` não encontrado.
 
 - [ ] **Step 3: Criar `src/db/migrations/001_init.sql`**
 
-Conteúdo idêntico ao bloco SQL da spec seção 3 (todas as tabelas, na ordem: `usuarios`, `clientes`, `servicos`, `configuracao`, `horario_funcionamento`, `agenda_disponibilidade`, `bloqueios_agenda`, `agendamentos`, os três `CREATE INDEX`/`CREATE UNIQUE INDEX` de `agendamentos`, `horarios_lock` e seus índices, `templates_mensagem`, `mensagens_whatsapp`, `otp_codigos`, `logs_acesso`). **Não** incluir `schema_migrations` (é o runner que cria) nem a tabela `session` (fica no P2). Copiar verbatim da spec — é a fonte da verdade.
+Conteúdo idêntico ao bloco SQL da spec seção 3 (todas as tabelas, na ordem: `usuarios`, `clientes`, `servicos`, `configuracao`, `horario_funcionamento`, `agenda_disponibilidade`, `bloqueios_agenda`, `agendamentos`, os três `CREATE INDEX`/`CREATE UNIQUE INDEX` de `agendamentos`, `horarios_lock` e seus índices, `templates_mensagem`, `mensagens_whatsapp`, `otp_codigos`, `logs_acesso`). **Não** incluir `CREATE SCHEMA` (o runner cria), `schema_migrations` (o runner cria) nem a tabela `session` (fica no P2). Tabelas e índices **sem qualificar com schema** — o `search_path` do pool resolve. Ler a spec em `docs/superpowers/specs/2026-09-05-barbearia-nucleo-design.md` seção 3 e transcrever verbatim — é a fonte da verdade.
 
 - [ ] **Step 4: Implementar `src/db/migrate.js`**
 
@@ -618,11 +605,14 @@ Conteúdo idêntico ao bloco SQL da spec seção 3 (todas as tabelas, na ordem: 
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { pool } from './pool.js';
+import { pool, schema } from './pool.js';
 
 const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations');
 
 export async function migrar({ silent = false } = {}) {
+  // `schema` vem do config, validado por regex (identificador SQL seguro)
+  await pool.query(`CREATE SCHEMA IF NOT EXISTS ${schema}`);
+
   await pool.query(`CREATE TABLE IF NOT EXISTS schema_migrations (
     nome TEXT PRIMARY KEY,
     aplicada_em TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -668,12 +658,12 @@ migrar()
 - [ ] **Step 6: Rodar e ver passar**
 
 Run: `npm test -- test/db/migrate.test.js`
-Expected: PASS (2 testes).
+Expected: PASS (2 testes) — cria tudo no schema `test`.
 
 - [ ] **Step 7: Verificar o CLI**
 
 Run: `npm run db:migrate`
-Expected: imprime "migrations em dia" e sai 0 (roda contra o banco de `DATABASE_URL`, o de dev).
+Expected: imprime "migrations em dia" e sai 0 (roda com `--env-file=.env` → `NODE_ENV=development` → schema `public`).
 
 - [ ] **Step 8: Commit**
 
@@ -694,11 +684,11 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 - Test: `test/helpers/db.test.js`
 
 **Interfaces:**
-- Consumes: `pool`, `migrar`, `semear` (esta última só é usada por `semearBase`, criada na Task 8 — este helper importa mas o tester não chama `semearBase` até a Task 8).
+- Consumes: `pool`, `migrar`. **Não importa `seed.js` estaticamente** — `semearBase` faz `await import('../../src/db/seed.js')` sob demanda, então o harness não depende de a Task 8 já existir.
 - Produces:
   - `prepararBanco() => Promise<void>` — roda `migrar` uma vez por processo e depois `limparBanco()`.
-  - `limparBanco() => Promise<void>` — `TRUNCATE ... RESTART IDENTITY CASCADE` em todas as tabelas de dados.
-  - `semearBase() => Promise<void>` — chama `semear()` (Task 8).
+  - `limparBanco() => Promise<void>` — `TRUNCATE ... RESTART IDENTITY CASCADE` em todas as tabelas de dados (nomes não-qualificados; o `search_path` do pool resolve para o schema de teste).
+  - `semearBase() => Promise<void>` — importa e chama `semear()` (Task 8) dinamicamente.
   - `fecharBanco() => Promise<void>` — `pool.end()`.
 
 - [ ] **Step 1: Escrever o teste que falha**
@@ -734,7 +724,6 @@ Expected: FAIL — `./db.js` não encontrado.
 // test/helpers/db.js
 import { pool } from '../../src/db/pool.js';
 import { migrar } from '../../src/db/migrate.js';
-import { semear } from '../../src/db/seed.js';
 
 const TABELAS = [
   'usuarios', 'clientes', 'servicos', 'configuracao', 'horario_funcionamento',
@@ -757,6 +746,7 @@ export async function limparBanco() {
 }
 
 export async function semearBase() {
+  const { semear } = await import('../../src/db/seed.js'); // dinâmico: não exige a Task 8 no load
   await semear();
 }
 
@@ -770,7 +760,6 @@ export async function fecharBanco() {
 ```js
 // scripts/reset.js
 import { migrar } from '../src/db/migrate.js';
-import { semear } from '../src/db/seed.js';
 import { pool } from '../src/db/pool.js';
 
 const TABELAS = [
@@ -781,21 +770,20 @@ const TABELAS = [
 
 await migrar({ silent: true });
 await pool.query(`TRUNCATE ${TABELAS.join(', ')} RESTART IDENTITY CASCADE`);
+const { semear } = await import('../src/db/seed.js'); // dinâmico: Task 8 preenche
 await semear();
 await pool.end();
 console.log('banco recriado e semeado');
 ```
 
-- [ ] **Step 5: Comentar temporariamente o import de `semear`**
+> `scripts/reset.js` só é executado manualmente (`npm run db:reset`) e não é coberto por teste nesta task; o `import` dinâmico de `seed.js` significa que ele só é resolvido em runtime, quando a Task 8 já existe.
 
-Como a Task 8 ainda não existe, para este teste passar: em `test/helpers/db.js` e `scripts/reset.js`, comente a linha `import { semear }` e o corpo de `semearBase`/a chamada `semear()`. Deixe um `// TODO Task 8: reativar` — **a Task 8 remove isto**. (Se estiver executando as tasks em ordem, alternativamente pule direto para a Task 8 e volte; mas o caminho previsto é comentar agora.)
-
-- [ ] **Step 6: Rodar e ver passar**
+- [ ] **Step 5: Rodar e ver passar**
 
 Run: `npm test -- test/helpers/db.test.js`
 Expected: PASS (1 teste).
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add test/helpers/db.js test/helpers/db.test.js scripts/reset.js
@@ -811,8 +799,9 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 **Files:**
 - Create: `src/db/seed.js`
 - Create: `scripts/seed.js`
-- Modify: `test/helpers/db.js` (reativar import de `semear`), `scripts/reset.js` (reativar `semear`)
 - Test: `test/db/seed.test.js`
+
+(O harness da Task 7 já importa `seed.js` dinamicamente — nada a reativar.)
 
 **Interfaces:**
 - Consumes: `pool`, `config`, `bcrypt`, `renderizarTemplate` (não; textos são literais aqui).
@@ -954,24 +943,20 @@ semear()
   .catch((err) => { console.error(err); process.exit(1); });
 ```
 
-- [ ] **Step 5: Reativar `semear` no harness e no reset**
-
-Em `test/helpers/db.js`: descomentar `import { semear } from '../../src/db/seed.js';` e o corpo de `semearBase`. Em `scripts/reset.js`: descomentar `import { semear }` e a chamada `await semear();`. Remover os `// TODO Task 8`.
-
-- [ ] **Step 6: Rodar e ver passar**
+- [ ] **Step 5: Rodar e ver passar**
 
 Run: `npm test -- test/db/seed.test.js test/helpers/db.test.js`
 Expected: PASS (2 arquivos, 2 testes).
 
-- [ ] **Step 7: Verificar `db:reset`**
+- [ ] **Step 6: Verificar `db:reset`**
 
 Run: `npm run db:reset`
-Expected: imprime "banco recriado e semeado", sai 0.
+Expected: imprime "banco recriado e semeado", sai 0 (roda no schema `public`).
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add src/db/seed.js scripts/seed.js test/db/seed.test.js test/helpers/db.js scripts/reset.js
+git add src/db/seed.js scripts/seed.js test/db/seed.test.js
 git commit -m "feat: seed idempotente (configuração, expediente, admin, serviços, templates)
 
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
@@ -1304,21 +1289,22 @@ test('domingo (dia_semana 0) => fechado: dia_fechado', async () => {
   assert.equal(r.fechado, 'dia_fechado');
 });
 
+// 14:15 = 09:00 + 35*9, ou seja um slot real da grade (intervalo_minutos=35).
 test('lock de outra sessão remove o slot; o da própria sessão não', async () => {
   const bId = await barbeiro();
   await abrirSetembro(bId);
   await query(
     `INSERT INTO horarios_lock (barbeiro_id, data, horario, session_id, expira_em)
-     VALUES ($1, $2, '14:00', 'sessao-A', now() + interval '5 minutes')`, [bId, DATA]);
+     VALUES ($1, $2, '14:15', 'sessao-A', now() + interval '5 minutes')`, [bId, DATA]);
 
   const outro = await horariosDisponiveis({ barbeiroId: bId, data: DATA, servicoId: await servicoCorte(),
     sessionId: 'sessao-B', agora: new Date('2026-09-01T08:00:00') });
-  assert.ok(!outro.disponivel.includes('14:00'));
+  assert.ok(!outro.disponivel.includes('14:15'));
 
   cache.limparTudo();
   const dono = await horariosDisponiveis({ barbeiroId: bId, data: DATA, servicoId: await servicoCorte(),
     sessionId: 'sessao-A', agora: new Date('2026-09-01T08:00:00') });
-  assert.ok(dono.disponivel.includes('14:00'));
+  assert.ok(dono.disponivel.includes('14:15'));
 });
 ```
 
@@ -1406,7 +1392,7 @@ export async function horariosDisponiveis({
 - [ ] **Step 4: Rodar e ver passar**
 
 Run: `npm test -- test/agenda/disponibilidade-base.test.js`
-Expected: PASS (6 testes).
+Expected: PASS (5 testes).
 
 - [ ] **Step 5: Commit**
 
@@ -1471,9 +1457,8 @@ test('agendamento ativo remove o slot exato e os sobrepostos', async () => {
   const { b, servicoId, cli } = await ctx();
   await agendar(b, cli, servicoId, '10:10', '10:45');
   const r = await horariosDisponiveis({ barbeiroId: b, data: DATA, servicoId, agora: CEDO });
-  assert.ok(!r.disponivel.includes('10:10'));
-  assert.ok(!r.disponivel.includes('09:35')); // 09:35–10:10 encosta, não sobrepõe → continua
-  assert.ok(r.disponivel.includes('09:35'));
+  assert.ok(!r.disponivel.includes('10:10'));               // slot exato bloqueado
+  assert.ok(r.disponivel.includes('09:35'));                // 09:35–10:10 encosta, não sobrepõe → continua livre
 });
 
 test('agendamento cancelado NÃO remove o slot', async () => {
@@ -2276,7 +2261,6 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 **Files:**
 - Create: `README.md`
-- Modify: `package.json` (script `db:setup` opcional)
 
 **Interfaces:**
 - Consumes: tudo.
@@ -2288,26 +2272,33 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 # Barbearia — Backend (P1: Fundação + Motor de Agenda)
 
 ## Pré-requisitos
-- Node 20 LTS
-- Docker (para o PostgreSQL local) **ou** um PostgreSQL 16 acessível
+- Node 20 ou superior
+- Um projeto **Supabase** (PostgreSQL). Não usa Docker nem Postgres local.
 
 ## Setup
 ```bash
-docker compose up -d db
-docker compose exec -T db psql -U barbearia -d barbearia -c "CREATE DATABASE barbearia_test;"
-cp .env.example .env
+cp .env.example .env          # preencha DATABASE_URL (Session Pooler do Supabase) e SESSION_SECRET
 cp .env.test.example .env.test
 npm install
-npm run db:reset      # migra + semeia o banco de desenvolvimento
+npm run db:reset              # cria schema public + tabelas + seed (desenvolvimento)
 ```
+
+`DATABASE_URL` usa o **Session Pooler** do Supabase (porta 5432). Se a senha do
+banco tiver caractere especial (`& + $ ? ...`), ela precisa estar
+**percent-encoded** dentro da URL.
+
+## Isolamento dev × teste
+Mesmo banco, schemas diferentes: desenvolvimento no schema `public`, testes no
+schema `test` (`TEST_SCHEMA`). `npm test` roda com `NODE_ENV=test` e nunca toca
+os dados de `public`.
 
 ## Comandos
 | Comando | O quê |
 |---|---|
-| `npm test` | Suíte completa (`node:test`), contra `DATABASE_URL_TEST` |
-| `npm run db:migrate` | Aplica migrations pendentes |
-| `npm run db:seed` | Aplica o seed idempotente |
-| `npm run db:reset` | Migra + trunca + semeia (desenvolvimento) |
+| `npm test` | Suíte completa (`node:test`), no schema `test` |
+| `npm run db:migrate` | Aplica migrations pendentes (schema `public`) |
+| `npm run db:seed` | Aplica o seed idempotente (schema `public`) |
+| `npm run db:reset` | Migra + trunca + semeia (schema `public`) |
 
 ## O que existe no P1
 - Camada de banco (`src/db/`): pool, migrations idempotentes, seed.
@@ -2334,7 +2325,7 @@ Expected: "banco recriado e semeado", sai 0.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add README.md package.json
+git add README.md
 git commit -m "docs: README do P1 com setup e comandos; suíte completa verde
 
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
@@ -2367,7 +2358,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 Sem lacunas para o escopo do P1.
 
-**2. Placeholders:** nenhum "TBD/TODO" de implementação. As Tasks 7→8 usam um comentário temporário explícito (import de `semear`), removido dentro da própria Task 8, Step 5. Os identificadores `de novo` no teste da Task 17 têm nota corretiva explícita (`denovo`).
+**2. Placeholders:** nenhum "TBD/TODO" de implementação. A Task 7 evita depender da Task 8 usando `await import('seed.js')` dinâmico em `semearBase`/`reset.js` — sem comentário temporário. O teste da Task 17 já usa `denovo` (identificador válido).
 
 **3. Consistência de tipos/nomes:**
 - `query`/`withTransaction`/`fecharPool` (Task 5) usados igual em 6–17.
