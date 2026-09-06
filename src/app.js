@@ -14,6 +14,7 @@ import { clienteApi } from './routes/clienteApi.js';
 import { requireCliente } from './auth/middleware.js';
 import { adminApi } from './routes/adminApi.js';
 import { requireEquipe } from './auth/middleware.js';
+import { webhooks } from './routes/webhooks.js';
 
 // As tasks seguintes de rota editam SÓ esta função (inserem app.use antes do comentário-âncora).
 function montarRotas(app) {
@@ -34,6 +35,7 @@ export function buildApp({ io = null } = {}) {
   }));
   app.use((req, res, next) => { req.io = io; next(); });
   app.use(helmet({ contentSecurityPolicy: false })); // CSP entra no P3 com os assets
+  app.use('/webhooks', (req, res, next) => { req.io = io; next(); }, webhooks);
   app.use(express.json({ limit: '100kb' }));
   app.use(criarSessaoMiddleware());
 
