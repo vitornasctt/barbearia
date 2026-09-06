@@ -9,11 +9,13 @@ import { saude } from './routes/saude.js';
 import { auth } from './routes/auth.js';
 import { anexarSessaoAnonima } from './auth/middleware.js';
 import { exigirOrigemConfiavel } from './http/origem.js';
+import { publicas } from './routes/publicas.js';
 
 // As tasks seguintes de rota editam SÓ esta função (inserem app.use antes do comentário-âncora).
 function montarRotas(app) {
   app.use(saude);
   app.use('/api/auth', anexarSessaoAnonima, exigirOrigemConfiavel, auth);
+  app.use('/api/agenda', anexarSessaoAnonima, exigirOrigemConfiavel, publicas);
   // <-- ROTAS P2 (não remover esta linha)
 }
 
