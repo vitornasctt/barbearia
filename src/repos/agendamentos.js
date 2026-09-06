@@ -3,7 +3,7 @@ import { query } from '../db/pool.js';
 import { hoje, inicioDoMes, fimDoMes } from '../lib/datas.js';
 
 const SELECT_ITEM = `
-  SELECT a.id, a.data_agendamento, to_char(a.horario_inicio,'HH24:MI') AS horario_inicio,
+  SELECT a.id, to_char(a.data_agendamento, 'YYYY-MM-DD') AS data_agendamento, to_char(a.horario_inicio,'HH24:MI') AS horario_inicio,
          to_char(a.horario_fim,'HH24:MI') AS horario_fim, a.status, a.valor_total,
          a.comissao_valor, a.observacoes,
          c.id AS c_id, c.nome AS c_nome, c.celular AS c_celular,

@@ -43,10 +43,7 @@ clienteApi.post('/agendamentos/:id/cancelar',
     const id = Number(req.params.id);
     const item = await meuAgendamento(id, req.session.clienteId);
     if (!item) return next(new ErroHttp('NAO_ENCONTRADO'));
-    const dataISO = item.data_agendamento instanceof Date
-      ? item.data_agendamento.toISOString().slice(0, 10)
-      : item.data_agendamento;
-    const quando = new Date(`${dataISO}T${item.horario_inicio}:00`);
+    const quando = new Date(`${item.data_agendamento}T${item.horario_inicio}:00`);
     if ((quando - Date.now()) / 3600_000 <= await antecedenciaHoras()) {
       return next(new ErroHttp('FORA_DO_PRAZO'));
     }
