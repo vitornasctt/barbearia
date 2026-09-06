@@ -1,0 +1,7 @@
+<%# src/views/partials/whatsapp-flutuante.ejs %>
+<% const telWa = (typeof configuracao !== 'undefined' && configuracao && configuracao.telefone_whatsapp) ? String(configuracao.telefone_whatsapp).replace(/\D/g,'') : ''; %>
+<% if (telWa) { %>
+  <a class="wa-flutuante" target="_blank" rel="noopener"
+     href="https://wa.me/<%= telWa %>?text=<%= encodeURIComponent('Olá! Tenho uma dúvida sobre a barbearia.') %>"
+     aria-label="Tirar dúvida no WhatsApp">WhatsApp</a>
+<% } %>
