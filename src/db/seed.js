@@ -1,5 +1,5 @@
 // src/db/seed.js
-import bcrypt from 'bcrypt';
+import { hashSenha } from '../auth/senha.js';
 import { pool } from './pool.js';
 import { config } from '../config.js';
 
@@ -42,7 +42,7 @@ export async function semear() {
     );
   }
 
-  const hash = await bcrypt.hash(config.ADMIN_SENHA, 12);
+  const hash = await hashSenha(config.ADMIN_SENHA);
   const admin = await pool.query(
     `INSERT INTO usuarios (nome, email, senha_hash, role)
      VALUES ('Dono', $1, $2, 'admin')
