@@ -37,10 +37,10 @@ export function buildApp({ io = null } = {}) {
   app.use((req, res, next) => { req.io = io; next(); });
   app.use(helmet({ contentSecurityPolicy: false })); // CSP entra no P3 com os assets
   app.use('/', express.static('src/public', { maxAge: '1h' }));
-  app.use(locaisDaRequisicao);
   app.use('/webhooks', (req, res, next) => { req.io = io; next(); }, webhooks);
   app.use(express.json({ limit: '100kb' }));
   app.use(criarSessaoMiddleware());
+  app.use(locaisDaRequisicao);
 
   montarRotas(app);
 
