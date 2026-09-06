@@ -10,6 +10,8 @@ import { normalizarCelular } from '../lib/celular.js';
 import { renderizarTemplate } from '../lib/template.js';
 import * as agendamentos from '../repos/agendamentos.js';
 import * as clientes from '../repos/clientes.js';
+import * as servicos from '../repos/servicos.js';
+import { requireAdmin } from '../auth/middleware.js';
 import * as templates from '../repos/templates.js';
 import * as mensagens from '../repos/mensagens.js';
 import { confirmarAgendamento, cancelarAgendamento } from '../agenda/agendar.js';
@@ -188,4 +190,75 @@ adminApi.delete('/bloqueios/:id', rota(async (req, res, next) => {
   if (!ok) return next(new ErroHttp('NAO_ENCONTRADO'));
   cache.limparTudo();
   res.status(204).end();
+}));
+
+adminApi.get('/servicos', rota(async (req, res) => {
+  res.json({ servicos: await servicos.todos() });
+}));
+
+adminApi.post('/servicos',
+  validarCorpo(z.object({
+    nome: z.string().min(1).max(100),
+    duracao_minutos: z.coerce.number().int().positive(),
+    preco: z.coerce.number().nonnegative(),
+    comissao_percentual: z.coerce.number().min(0).max(100),
+  })),
+  rota(async (req, res) => {
+    res.status(201).json({ servico: await servicos.criar(req.body) });
+  }));
+
+adminApi.patch('/servicos/:id',
+  validarCorpo(z.object({
+    nome: z.string().min(1).max(100).optional(),
+    duracao_minutos: z.coerce.number().int().positive().optional(),
+    preco: z.coerce.number().nonnegative().optional(),
+    comissao_percentual: z.coerce.number().min(0).max(100).optional(),
+    ativo: z.boolean().optional(),
+  })),
+  rota(async (req, res, next) => {
+    const s = await servicos.atualizar(Number(req.params.id), req.body);
+    if (!s) return next(new ErroHttp('NAO_ENCONTRADO'));
+    res.json({ servico: s });
+  }));
+
+adminApi.delete('/servicos/:id', rota(async (req, res, next) => {
+  const s = await servicos.porId(Number(req.params.id));
+  if (!s) return next(new ErroHttp('NAO_ENCONTRADO'));
+  const modo = await servicos.remover(Number(req.params.id));
+  res.json({ modo });
+}));
+
+adminApi.get('/clientes',
+  validarQuery(z.object({ busca: z.string().optional(), page: z.coerce.number().int().positive().default(1) })),
+  rota(async (req, res) => {
+    const { busca, page } = req.query;
+    const params = [];
+    let where = '';
+    if (busca) { params.push(`%${busca}%`); where = `WHERE nome ILIKE $1 OR celular LIKE $1`; }
+    const tot = await query(`SELECT count(*)::int AS n FROM clientes ${where}`, params);
+    params.push(20, (page - 1) * 20);
+    const r = await query(
+      `SELECT id, nome, celular, email, ultimo_agendamento FROM clientes ${where}
+       ORDER BY nome LIMIT $${params.length - 1} OFFSET $${params.length}`, params);
+    res.json({ itens: r.rows, total: tot.rows[0].n, page });
+  }));
+
+adminApi.get('/clientes/:id', rota(async (req, res, next) => {
+  const r = await query(
+    `SELECT id, nome, celular, email, celular_verificado, created_at, ultimo_agendamento
+     FROM clientes WHERE id=$1`, [Number(req.params.id)]);
+  if (r.rowCount === 0) return next(new ErroHttp('NAO_ENCONTRADO'));
+  const cliente = r.rows[0];
+  const ags = await agendamentos.listar({ cliente: cliente.celular, page: 1 });
+  res.json({ cliente, agendamentos: ags });
+}));
+
+adminApi.post('/clientes/:id/anonimizar', requireAdmin, rota(async (req, res, next) => {
+  const r = await query(
+    `UPDATE clientes
+     SET nome='removido', email=NULL, senha_hash=NULL,
+         celular = 'ANON-' || id || '-' || substr(md5(random()::text), 1, 8)
+     WHERE id=$1 RETURNING id`, [Number(req.params.id)]);
+  if (r.rowCount === 0) return next(new ErroHttp('NAO_ENCONTRADO'));
+  res.json({ ok: true });
 }));
