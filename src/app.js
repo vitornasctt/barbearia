@@ -3,6 +3,7 @@ import express from 'express';
 import helmet from 'helmet';
 import pinoHttp from 'pino-http';
 import { config } from './config.js';
+import { diretivasCsp } from './http/csp.js';
 import { errorHandler } from './http/erros.js';
 import { criarSessaoMiddleware } from './auth/sessao.js';
 import { saude } from './routes/saude.js';
@@ -35,7 +36,9 @@ export function buildApp({ io = null } = {}) {
     redact: ['req.body.senha', 'req.headers.cookie', 'req.headers.authorization'],
   }));
   app.use((req, res, next) => { req.io = io; next(); });
-  app.use(helmet({ contentSecurityPolicy: false })); // CSP entra no P3 com os assets
+  app.use(helmet({
+    contentSecurityPolicy: { useDefaults: false, directives: diretivasCsp(config) },
+  }));
   app.use('/', express.static('src/public', { maxAge: '1h' }));
   app.use('/webhooks', (req, res, next) => { req.io = io; next(); }, webhooks);
   app.use(express.json({ limit: '100kb' }));
