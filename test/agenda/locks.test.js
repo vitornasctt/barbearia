@@ -62,5 +62,5 @@ test('limparExpirados remove os vencidos e conta', async () => {
   await query(`INSERT INTO horarios_lock (barbeiro_id, data, horario, session_id, expira_em)
     VALUES ($1,$2,'09:00','X', now() - interval '1 minute'),
            ($1,$2,'09:35','Y', now() + interval '5 minutes')`, [b, DATA]);
-  assert.deepEqual(await limparExpirados(), { removidos: 1 });
+  assert.equal((await limparExpirados()).removidos, 1);
 });

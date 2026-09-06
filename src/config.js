@@ -6,7 +6,7 @@ const schema = z.object({
   TZ: z.string().default('America/Sao_Paulo'),
   DATABASE_URL: z.string().min(1),
   TEST_SCHEMA: z.string().regex(/^[a-z_][a-z0-9_]*$/, 'deve ser um identificador SQL válido (minúsculas, _, dígitos)').default('test'),
-  SESSION_SECRET: z.string().min(16).default('dev-secret-troque-isto-000000'),
+  SESSION_SECRET: z.string().default('dev-secret-troque-isto-000000'),
   APP_URL: z.string().default('http://localhost:3000'),
   ADMIN_EMAIL: z.string().email().default('admin@local.test'),
   ADMIN_SENHA: z.string().min(6).default('admin123'),
@@ -17,6 +17,10 @@ const schema = z.object({
   TWILIO_ACCOUNT_SID: z.string().default(''),
   TWILIO_AUTH_TOKEN: z.string().default(''),
   TWILIO_VERIFY_SERVICE_SID: z.string().default(''),
+  ORIGENS_PERMITIDAS: z.string().default(''),
+  COOKIE_SECURE: z.string().default(''),
+  WHATSAPP_APP_SECRET: z.string().default(''),
+  LOG_LEVEL: z.string().default('info'),
 });
 
 export function carregarConfig(env = process.env) {
@@ -24,6 +28,9 @@ export function carregarConfig(env = process.env) {
   if (!r.success) {
     const detalhe = r.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
     throw new Error(`Configuração de ambiente inválida — ${detalhe}`);
+  }
+  if (r.data.NODE_ENV === 'production' && r.data.SESSION_SECRET.length < 32) {
+    throw new Error('Configuração de ambiente inválida — SESSION_SECRET: mínimo 32 caracteres em produção');
   }
   return r.data;
 }

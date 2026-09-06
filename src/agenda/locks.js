@@ -46,6 +46,8 @@ export async function liberarLock({ barbeiroId, data, horario, sessionId }) {
 }
 
 export async function limparExpirados() {
-  const res = await query(`DELETE FROM horarios_lock WHERE expira_em < now()`);
-  return { removidos: res.rowCount };
+  const res = await query(
+    `DELETE FROM horarios_lock WHERE expira_em < now()
+     RETURNING to_char(data,'YYYY-MM-DD') AS data, to_char(horario,'HH24:MI') AS horario, barbeiro_id`);
+  return { removidos: res.rowCount, itens: res.rows };
 }

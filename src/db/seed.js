@@ -1,5 +1,5 @@
 // src/db/seed.js
-import bcrypt from 'bcrypt';
+import { hashSenha } from '../auth/senha.js';
 import { pool } from './pool.js';
 import { config } from '../config.js';
 
@@ -28,36 +28,36 @@ const SERVICOS = [
   ['Corte + Barba', 70, 70.0, 50.0],
 ];
 
-export async function semear() {
-  await pool.query(
+export async function semear(exec = pool) {
+  await exec.query(
     `INSERT INTO configuracao (id, nome_barbearia) VALUES (1, 'Minha Barbearia')
      ON CONFLICT (id) DO NOTHING`,
   );
 
   for (let dow = 0; dow <= 6; dow++) {
-    await pool.query(
+    await exec.query(
       `INSERT INTO horario_funcionamento (dia_semana, aberto, abre, fecha)
        VALUES ($1, $2, '09:00', '19:30') ON CONFLICT (dia_semana) DO NOTHING`,
       [dow, dow !== 0],
     );
   }
 
-  const hash = await bcrypt.hash(config.ADMIN_SENHA, 12);
-  const admin = await pool.query(
+  const hash = await hashSenha(config.ADMIN_SENHA);
+  const admin = await exec.query(
     `INSERT INTO usuarios (nome, email, senha_hash, role)
      VALUES ('Dono', $1, $2, 'admin')
      ON CONFLICT (email) DO UPDATE SET nome = usuarios.nome
      RETURNING id`,
     [config.ADMIN_EMAIL, hash],
   );
-  await pool.query(
+  await exec.query(
     `UPDATE configuracao SET barbeiro_padrao_id = $1
      WHERE id = 1 AND barbeiro_padrao_id IS NULL`,
     [admin.rows[0].id],
   );
 
   for (const [nome, dur, preco, com] of SERVICOS) {
-    await pool.query(
+    await exec.query(
       `INSERT INTO servicos (nome, duracao_minutos, preco, comissao_percentual)
        SELECT $1::varchar, $2, $3, $4
        WHERE NOT EXISTS (SELECT 1 FROM servicos WHERE nome = $1)`,
@@ -66,7 +66,7 @@ export async function semear() {
   }
 
   for (const [chave, titulo, corpo] of TEMPLATES) {
-    await pool.query(
+    await exec.query(
       `INSERT INTO templates_mensagem (chave, titulo, corpo)
        VALUES ($1, $2, $3) ON CONFLICT (chave) DO NOTHING`,
       [chave, titulo, corpo],
