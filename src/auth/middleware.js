@@ -28,3 +28,20 @@ export function requireAdmin(req, res, next) {
     next();
   });
 }
+
+// Shared equipe validation predicate
+export function equipeValida(session) {
+  return !!(session?.usuarioId && (session.role === 'admin' || session.role === 'barbeiro')
+    && session.equipeExpiraEm && Date.now() <= session.equipeExpiraEm);
+}
+
+// Page-guard middlewares (redirect on failure, not JSON error)
+export function paginaEquipe(req, res, next) {
+  if (equipeValida(req.session)) return next();
+  res.redirect(302, '/admin/login?next=' + encodeURIComponent(req.originalUrl));
+}
+
+export function paginaCliente(req, res, next) {
+  if (req.session?.clienteId) return next();
+  res.redirect(302, '/minha-conta');
+}
