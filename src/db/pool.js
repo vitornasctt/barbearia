@@ -11,6 +11,13 @@ export const pool = new pg.Pool({
   max: 10,
 });
 
+// Encerramento idempotente: `server.js#parar()` fecha o pool no shutdown gracioso
+// e os helpers de teste também chamam `pool.end()` no `test.after`. Sem isso o
+// segundo `end()` do pg-pool lança "Called end on pool more than once".
+const _poolEnd = pool.end.bind(pool);
+let _encerrando = null;
+pool.end = () => (_encerrando ||= _poolEnd());
+
 export function query(text, params) {
   return pool.query(text, params);
 }
