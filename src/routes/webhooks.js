@@ -2,6 +2,7 @@
 import express from 'express';
 import crypto from 'node:crypto';
 import { config } from '../config.js';
+import { rota } from '../http/async.js';
 import { query } from '../db/pool.js';
 import { cancelarAgendamento } from '../agenda/agendar.js';
 import { emitirAgendaAtualizada, emitirAgendamentoAtualizado, emitirDashboardTick } from '../realtime/emitir.js';
@@ -19,16 +20,14 @@ webhooks.get('/whatsapp', (req, res) => {
   res.sendStatus(403);
 });
 
-webhooks.post('/whatsapp', express.raw({ type: '*/*', limit: '1mb' }), async (req, res) => {
+webhooks.post('/whatsapp', express.raw({ type: '*/*', limit: '1mb' }), rota(async (req, res) => {
+  if (!config.WHATSAPP_APP_SECRET) return res.sendStatus(404);
   const raw = Buffer.isBuffer(req.body) ? req.body : Buffer.from(JSON.stringify(req.body ?? {}));
-  if (config.WHATSAPP_APP_SECRET) {
-    const esperado = 'sha256=' + crypto.createHmac('sha256', config.WHATSAPP_APP_SECRET).update(raw).digest('hex');
-    const recebido = req.get('x-hub-signature-256') ?? '';
-    if (recebido.length !== esperado.length
-      || !crypto.timingSafeEqual(Buffer.from(recebido), Buffer.from(esperado))) {
-      return res.sendStatus(403);
-    }
-  }
+  const esperado = 'sha256=' + crypto.createHmac('sha256', config.WHATSAPP_APP_SECRET).update(raw).digest('hex');
+  const recebido = req.get('x-hub-signature-256') || '';
+  const a = Buffer.from(recebido, 'utf8');
+  const b = Buffer.from(esperado, 'utf8');
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return res.sendStatus(403);
   let payload;
   try { payload = JSON.parse(raw.toString('utf8')); } catch { return res.sendStatus(200); }
 
@@ -61,4 +60,4 @@ webhooks.post('/whatsapp', express.raw({ type: '*/*', limit: '1mb' }), async (re
     }
   }
   res.sendStatus(200);
-});
+}));

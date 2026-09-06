@@ -22,6 +22,7 @@ export async function enviar(row) {
           type: 'text',
           text: { body: row.mensagem_final },
         }),
+        signal: AbortSignal.timeout(10_000),
       },
     );
     if (!resp.ok) {

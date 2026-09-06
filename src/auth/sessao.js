@@ -14,7 +14,7 @@ export function criarSessaoMiddleware() {
       schemaName: schema,
       tableName: 'session',
       createTableIfMissing: false,
-      pruneSessionInterval: false,
+      pruneSessionInterval: config.NODE_ENV === 'test' ? false : 60,
     }),
     secret: config.SESSION_SECRET,
     resave: false,

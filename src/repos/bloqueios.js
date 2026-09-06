@@ -3,7 +3,7 @@ import { query } from '../db/pool.js';
 
 export async function entre(de, ate, barbeiroId = null) {
   const r = await query(
-    `SELECT id, barbeiro_id, data,
+    `SELECT id, barbeiro_id, to_char(data,'YYYY-MM-DD') AS data,
             to_char(hora_inicio,'HH24:MI') AS hora_inicio,
             to_char(hora_fim,'HH24:MI') AS hora_fim, motivo
      FROM bloqueios_agenda

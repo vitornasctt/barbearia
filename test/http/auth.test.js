@@ -48,6 +48,27 @@ test('POST sem Origin confiável => 403', async () => {
   assert.equal(res.status, 403);
 });
 
+function sidDe(res) {
+  const sc = res.headers['set-cookie'] ?? [];
+  const c = sc.find((x) => x.startsWith('barbearia.sid='));
+  return c ? c.split(';')[0].slice('barbearia.sid='.length) : null;
+}
+
+test('admin login regenera a sessão (anti-fixação)', async () => {
+  const agent = request.agent(buildApp());
+  // uma sessão anônima ganha cookie ao gravar algo (fixarSessao no /lock)
+  const pre = await agent.post('/api/agenda/lock').set('Origin', ORIGIN)
+    .send({ data: '2026-12-15', horario: '10:00', servico_id: 1 });
+  const antes = sidDe(pre);
+  assert.ok(antes, 'deveria haver um cookie de sessão antes do login');
+  const res = await agent.post('/api/auth/admin/login').set('Origin', ORIGIN)
+    .send({ email: 'dono@teste.local', senha: 'teste123456' });
+  assert.equal(res.status, 200);
+  const depois = sidDe(res);
+  assert.ok(depois, 'o login deveria emitir um novo cookie de sessão');
+  assert.notEqual(depois, antes);
+});
+
 test('logout apaga a sessão', async () => {
   const agent = request.agent(buildApp());
   await agent.post('/api/auth/admin/login').set('Origin', ORIGIN)

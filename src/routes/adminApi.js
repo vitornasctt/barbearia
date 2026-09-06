@@ -61,7 +61,9 @@ adminApi.get('/dashboard', rota(async (req, res) => {
 
 adminApi.get('/agendamentos',
   validarQuery(z.object({
-    data: z.string().optional(), de: z.string().optional(), ate: z.string().optional(),
+    data: z.string().refine(ehData, 'data inválida').optional(),
+    de: z.string().refine(ehData, 'data inválida').optional(),
+    ate: z.string().refine(ehData, 'data inválida').optional(),
     status: z.enum(['pendente', 'confirmado', 'concluido', 'cancelado']).optional(),
     cliente: z.string().optional(),
     page: z.coerce.number().int().positive().default(1),
@@ -113,7 +115,9 @@ adminApi.post('/agendamentos',
   rota(async (req, res, next) => {
     let clienteId = req.body.cliente_id;
     if (!clienteId) {
-      const cel = normalizarCelular(req.body.cliente.celular);
+      let cel;
+      try { cel = normalizarCelular(req.body.cliente.celular); }
+      catch { const e = new ErroHttp('VALIDACAO'); e.campos = [{ caminho: 'cliente.celular', mensagem: 'inválido' }]; return next(e); }
       const existente = await clientes.porCelular(cel);
       clienteId = existente?.id ?? (await clientes.criar({ nome: req.body.cliente.nome, celular: cel })).id;
     }
@@ -333,9 +337,10 @@ adminApi.post('/mensagens/enviar', limiteMensagens,
   rota(async (req, res, next) => {
     const item = await agendamentos.porId(req.body.agendamento_id);
     if (!item) return next(new ErroHttp('NAO_ENCONTRADO'));
-    await enfileirarTemplate(item, req.body.template_chave); // 404 silencioso se template inativo/ausente
     const tpl = await templates.porChave(req.body.template_chave);
     if (!tpl) return next(new ErroHttp('NAO_ENCONTRADO'));
+    if (!tpl.ativo) return next(new ErroHttp('TEMPLATE_INATIVO'));
+    await enfileirarTemplate(item, req.body.template_chave);
     await processarPendentes({ limite: 5 }).catch((e) => req.log?.error({ e }, 'worker'));
     const lst = await mensagens.listar({ agendamento_id: item.id, page: 1 });
     res.status(202).json({ mensagem: lst.itens[0] });
