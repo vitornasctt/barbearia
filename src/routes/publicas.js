@@ -11,6 +11,14 @@ import { criarLock, renovarLock, liberarLock } from '../agenda/locks.js';
 import { ErroHttp } from '../http/erros.js';
 import { emitirHorarioReservado, emitirHorarioLiberado } from '../realtime/emitir.js';
 import * as cache from '../agenda/cache.js';
+import { confirmarAgendamento } from '../agenda/agendar.js';
+import * as clientes from '../repos/clientes.js';
+import * as agendamentos from '../repos/agendamentos.js';
+import { hashSenha } from '../auth/senha.js';
+import { normalizarCelular } from '../lib/celular.js';
+import { requireCliente } from '../auth/middleware.js';
+import { emitirAgendaAtualizada, emitirNovoAgendamento, emitirDashboardTick } from '../realtime/emitir.js';
+import { processarPendentes } from '../services/mensageiro.js';
 
 const LOCK_TTL_MS = 5 * 60 * 1000;
 
@@ -107,3 +115,62 @@ publicas.post('/lock/liberar', validarCorpo(corpoLock), rota(async (req, res) =>
   cache.invalidarData(data);
   res.json({ ok: true });
 }));
+
+publicas.post('/cadastro',
+  validarCorpo(z.object({
+    nome: z.string().min(1).max(100),
+    celular: z.string().min(1),
+    email: z.string().email().optional(),
+    senha: z.string().min(6).optional(),
+    consentimento: z.literal(true),
+  })),
+  rota(async (req, res, next) => {
+    let celular;
+    try { celular = normalizarCelular(req.body.celular); }
+    catch { const e = new ErroHttp('VALIDACAO'); e.campos = [{ caminho: 'celular', mensagem: 'inválido' }]; return next(e); }
+    if (req.body.senha && !req.body.email) {
+      const e = new ErroHttp('VALIDACAO'); e.campos = [{ caminho: 'email', mensagem: 'obrigatório com senha' }]; return next(e);
+    }
+    const existente = await clientes.porCelular(celular);
+    if (existente?.senha_hash) return next(new ErroHttp('CELULAR_EM_USO'));
+    const cliente = existente ?? await clientes.criar({
+      nome: req.body.nome, celular,
+      email: req.body.email ?? null,
+      senha_hash: req.body.senha ? await hashSenha(req.body.senha) : null,
+    });
+    req.session.clienteId = cliente.id;
+    delete req.session.usuarioId;
+    res.status(201).json({ cliente: { id: cliente.id, nome: cliente.nome } });
+  }));
+
+publicas.post('/confirmar', requireCliente,
+  validarCorpo(z.object({
+    servico_id: z.coerce.number().int().positive(),
+    data: z.string().refine(ehData, 'data inválida'),
+    horario: z.string().regex(/^\d{2}:\d{2}$/),
+    observacoes: z.string().max(1000).optional(),
+    barbeiro_id: z.coerce.number().int().positive().optional(),
+  })),
+  rota(async (req, res, next) => {
+    const barbeiroId = req.body.barbeiro_id ?? await barbeiroPadrao();
+    const r = await confirmarAgendamento({
+      clienteId: req.session.clienteId,
+      servicoId: req.body.servico_id,
+      barbeiroId,
+      data: req.body.data,
+      horario: req.body.horario,
+      sessionId: req.sessionId,
+      observacoes: req.body.observacoes ?? null,
+    });
+    if (!r.ok) return next(new ErroHttp(r.erro));
+    const item = await agendamentos.porId(r.agendamento.id);
+    emitirAgendaAtualizada(req.io, { data: item.data_agendamento });
+    emitirNovoAgendamento(req.io, {
+      id: item.id, cliente: item.cliente.nome, servico: item.servico.nome,
+      data: item.data_agendamento, horario: item.horario_inicio, status: item.status,
+    });
+    emitirDashboardTick(req.io, (await agendamentos.dashboard()).contadores);
+    cache.invalidarData(req.body.data);
+    await processarPendentes({ limite: 5 }).catch((e) => req.log?.error({ e }, 'worker de mensagens'));
+    res.status(201).json({ agendamento: item });
+  }));
