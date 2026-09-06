@@ -19,7 +19,7 @@ async function servicoCorte() {
 }
 // 2026-09-10 é quinta-feira
 const DATA = '2026-09-10';
-async function abrirSetembro(bId) {
+async function abrirSetembro() {
   await query(
     `INSERT INTO agenda_disponibilidade (ano, mes, barbeiro_id, status)
      VALUES (2026, 9, NULL, 'aberto')`,
@@ -36,7 +36,7 @@ test('mês não liberado => fechado: mes_fechado', async () => {
 
 test('mês liberado, dia útil => lista slots do expediente', async () => {
   const bId = await barbeiro();
-  await abrirSetembro(bId);
+  await abrirSetembro();
   const r = await horariosDisponiveis({ barbeiroId: bId, data: DATA, servicoId: await servicoCorte(),
     agora: new Date('2026-09-01T08:00:00') });
   assert.equal(r.fechado, null);
@@ -46,7 +46,7 @@ test('mês liberado, dia útil => lista slots do expediente', async () => {
 
 test('filtro de antecedência esconde os slots cedo demais', async () => {
   const bId = await barbeiro();
-  await abrirSetembro(bId);
+  await abrirSetembro();
   // agora = mesmo dia 09:00, antecedência padrão 2h => primeiro slot >= 11:00
   const r = await horariosDisponiveis({ barbeiroId: bId, data: DATA, servicoId: await servicoCorte(),
     agora: new Date('2026-09-10T09:00:00') });
@@ -67,7 +67,7 @@ test('domingo (dia_semana 0) => fechado: dia_fechado', async () => {
 // 14:15 = 09:00 + 35*9, ou seja um slot real da grade (intervalo_minutos=35).
 test('lock de outra sessão remove o slot; o da própria sessão não', async () => {
   const bId = await barbeiro();
-  await abrirSetembro(bId);
+  await abrirSetembro();
   await query(
     `INSERT INTO horarios_lock (barbeiro_id, data, horario, session_id, expira_em)
      VALUES ($1, $2, '14:15', 'sessao-A', now() + interval '5 minutes')`, [bId, DATA]);

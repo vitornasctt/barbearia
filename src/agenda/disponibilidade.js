@@ -10,12 +10,13 @@ function dowUTC(data) {
 }
 
 // helper: ranges ocupados (agendamentos ativos + bloqueios) em minutos
-async function rangesOcupados(exec, { barbeiroId, data, abre, fecha }) {
+async function rangesOcupados(exec, { barbeiroId, data, abre, fecha, ignorarAgendamentoId = null }) {
   const ativos = await exec(
     `SELECT to_char(horario_inicio,'HH24:MI') AS ini, to_char(horario_fim,'HH24:MI') AS fim
      FROM agendamentos
-     WHERE barbeiro_id=$1 AND data_agendamento=$2 AND status IN ('pendente','confirmado')`,
-    [barbeiroId, data],
+     WHERE barbeiro_id=$1 AND data_agendamento=$2 AND status IN ('pendente','confirmado')
+       AND ($3::int IS NULL OR id <> $3)`,
+    [barbeiroId, data, ignorarAgendamentoId],
   );
   const bloqueios = await exec(
     `SELECT to_char(hora_inicio,'HH24:MI') AS ini, to_char(hora_fim,'HH24:MI') AS fim
@@ -36,35 +37,33 @@ function invade(ini, fim, ranges) {
   return ranges.some(([oIni, oFim]) => ini < oFim && oIni < fim);
 }
 
-async function contarAtivos(exec, barbeiroId, data) {
+async function contarAtivos(exec, barbeiroId, data, ignorarAgendamentoId = null) {
   const r = await exec(
     `SELECT count(*)::int AS n FROM agendamentos
-     WHERE barbeiro_id=$1 AND data_agendamento=$2 AND status IN ('pendente','confirmado')`,
-    [barbeiroId, data],
+     WHERE barbeiro_id=$1 AND data_agendamento=$2 AND status IN ('pendente','confirmado')
+       AND ($3::int IS NULL OR id <> $3)`,
+    [barbeiroId, data, ignorarAgendamentoId],
   );
   return r.rows[0].n;
 }
 
-async function limitePorDia(exec, ano, mes, barbeiroId) {
+// resolve a linha de disponibilidade efetiva do mês (específica do barbeiro vence a global),
+// SEM pré-filtrar por status — assim um 'fechado' específico não é mascarado por um 'aberto' global.
+async function resolverDisponibilidadeMes(exec, ano, mes, barbeiroId) {
   const r = await exec(
-    `SELECT limite_por_dia FROM agenda_disponibilidade
-     WHERE ano=$1 AND mes=$2 AND status='aberto' AND (barbeiro_id IS NULL OR barbeiro_id=$3)
+    `SELECT status, limite_por_dia FROM agenda_disponibilidade
+     WHERE ano=$1 AND mes=$2 AND (barbeiro_id IS NULL OR barbeiro_id=$3)
      ORDER BY barbeiro_id NULLS LAST LIMIT 1`,
     [ano, mes, barbeiroId],
   );
-  return r.rows[0]?.limite_por_dia ?? null;
+  return r.rows[0] ?? null;
 }
 
 export async function calcularBase(exec, { barbeiroId, data, servicoId }) {
   const [ano, mes] = data.split('-').map(Number);
 
-  const disp = await exec(
-    `SELECT 1 FROM agenda_disponibilidade
-     WHERE ano=$1 AND mes=$2 AND status='aberto'
-       AND (barbeiro_id IS NULL OR barbeiro_id=$3) LIMIT 1`,
-    [ano, mes, barbeiroId],
-  );
-  if (disp.rowCount === 0) return { fechado: 'mes_fechado' };
+  const disp = await resolverDisponibilidadeMes(exec, ano, mes, barbeiroId);
+  if (!disp || disp.status !== 'aberto') return { fechado: 'mes_fechado' };
 
   const func = await exec(
     `SELECT aberto, to_char(abre,'HH24:MI') AS abre, to_char(fecha,'HH24:MI') AS fecha
@@ -87,8 +86,7 @@ export async function calcularBase(exec, { barbeiroId, data, servicoId }) {
     abre, fecha, intervaloMinutos: intervalo_minutos, duracaoServico: duracao,
   });
 
-  const [anoN, mesN] = data.split('-').map(Number);
-  const limite = await limitePorDia(exec, anoN, mesN, barbeiroId);
+  const limite = disp.limite_por_dia ?? null;
   if (limite != null && (await contarAtivos(exec, barbeiroId, data)) >= limite) {
     return { fechado: 'limite_atingido' };
   }
@@ -102,15 +100,13 @@ export async function calcularBase(exec, { barbeiroId, data, servicoId }) {
   return { slots: slotsLivres, duracao, antecedenciaHoras: antecedencia_min_horas, abre, fecha, fechado: null };
 }
 
-export async function verificarSlot(exec, { barbeiroId, data, horario, duracaoMinutos, agora = new Date() }) {
+export async function verificarSlot(exec, {
+  barbeiroId, data, horario, duracaoMinutos, agora = new Date(), ignorarAgendamentoId = null,
+}) {
   const [ano, mes] = data.split('-').map(Number);
 
-  const disp = await exec(
-    `SELECT 1 FROM agenda_disponibilidade
-     WHERE ano=$1 AND mes=$2 AND status='aberto' AND (barbeiro_id IS NULL OR barbeiro_id=$3) LIMIT 1`,
-    [ano, mes, barbeiroId],
-  );
-  if (disp.rowCount === 0) return { ok: false, erro: 'MES_FECHADO' };
+  const disp = await resolverDisponibilidadeMes(exec, ano, mes, barbeiroId);
+  if (!disp || disp.status !== 'aberto') return { ok: false, erro: 'MES_FECHADO' };
 
   const func = await exec(
     `SELECT aberto, to_char(abre,'HH24:MI') AS abre, to_char(fecha,'HH24:MI') AS fecha
@@ -127,12 +123,12 @@ export async function verificarSlot(exec, { barbeiroId, data, horario, duracaoMi
   const limite = new Date(agora.getTime() + cfg.rows[0].antecedencia_min_horas * 3_600_000);
   if (new Date(`${data}T${horario}:00`) < limite) return { ok: false, erro: 'ANTECEDENCIA' };
 
-  const lim = await limitePorDia(exec, ano, mes, barbeiroId);
-  if (lim != null && (await contarAtivos(exec, barbeiroId, data)) >= lim) {
+  const lim = disp.limite_por_dia ?? null;
+  if (lim != null && (await contarAtivos(exec, barbeiroId, data, ignorarAgendamentoId)) >= lim) {
     return { ok: false, erro: 'LIMITE_ATINGIDO' };
   }
 
-  const ranges = await rangesOcupados(exec, { barbeiroId, data, abre, fecha });
+  const ranges = await rangesOcupados(exec, { barbeiroId, data, abre, fecha, ignorarAgendamentoId });
   if (invade(ini, fim, ranges)) return { ok: false, erro: 'HORARIO_INDISPONIVEL' };
 
   return { ok: true };

@@ -1,5 +1,5 @@
 // test/helpers/db.js
-import { pool } from '../../src/db/pool.js';
+import { pool, schema } from '../../src/db/pool.js';
 import { migrar } from '../../src/db/migrate.js';
 
 const TABELAS = [
@@ -19,6 +19,7 @@ export async function prepararBanco() {
 }
 
 export async function limparBanco() {
+  if (schema === 'public') throw new Error('harness de teste recusado no schema public');
   await pool.query(`TRUNCATE ${TABELAS.join(', ')} RESTART IDENTITY CASCADE`);
 }
 

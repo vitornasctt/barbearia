@@ -38,12 +38,19 @@ async function enfileirarConfirmacao(exec, agendamento) {
   );
 }
 
+// O lock de `horarios_lock` (5 min) é apenas consultivo: some slots em `horariosDisponiveis`,
+// mas não impede a gravação. Esta função apaga o lock do slot de QUALQUER sessão ao confirmar;
+// `sessionId` é aceito por simetria de assinatura / uso futuro.
 export async function confirmarAgendamento({
   clienteId, servicoId, barbeiroId, data, horario,
   sessionId, observacoes = null, agora = new Date(),
 }) {
   return withTransaction(async (c) => {
     const exec = execDe(c);
+
+    // serializa concorrentes do mesmo (barbeiro, dia): cobre sobreposições de faixas
+    // que o índice uniq_slot_ativo (só horario_inicio idêntico) não pega. Libera no COMMIT/ROLLBACK.
+    await exec(`SELECT pg_advisory_xact_lock(hashtext($1))`, [`${barbeiroId}:${data}`]);
 
     const srv = await exec(
       `SELECT duracao_minutos, preco, comissao_percentual FROM servicos WHERE id=$1 AND ativo`,
@@ -116,9 +123,12 @@ export async function remarcarAgendamento(id, { novaData, novoHorario, agora = n
     if (orig.status === 'cancelado') return { ok: false, erro: 'JA_CANCELADO' };
     if (orig.status === 'concluido') return { ok: false, erro: 'JA_CONCLUIDO' };
 
+    // serializa concorrentes do mesmo (barbeiro, dia) do slot que será ocupado; libera no COMMIT/ROLLBACK.
+    await exec(`SELECT pg_advisory_xact_lock(hashtext($1))`, [`${orig.barbeiro_id}:${novaData}`]);
+
     const val = await verificarSlot(exec, {
       barbeiroId: orig.barbeiro_id, data: novaData, horario: novoHorario,
-      duracaoMinutos: orig.duracao_minutos, agora,
+      duracaoMinutos: orig.duracao_minutos, agora, ignorarAgendamentoId: id,
     });
     if (!val.ok) return val;
 

@@ -76,6 +76,38 @@ test('limite_por_dia atingido => fechado: limite_atingido', async () => {
   assert.equal(r.fechado, 'limite_atingido');
 });
 
+test('fechado específico do barbeiro vence aberto global do mês', async () => {
+  const { b, servicoId, duracao } = await ctx();
+  await query(`INSERT INTO agenda_disponibilidade (ano, mes, barbeiro_id, status)
+    VALUES (2026, 9, $1, 'fechado')`, [b]);
+
+  const r = await horariosDisponiveis({ barbeiroId: b, data: DATA, servicoId, agora: CEDO });
+  assert.equal(r.fechado, 'mes_fechado');
+  assert.deepEqual(r.disponivel, []);
+
+  const v = await verificarSlot(query, {
+    barbeiroId: b, data: DATA, horario: '14:00', duracaoMinutos: duracao, agora: CEDO,
+  });
+  assert.equal(v.erro, 'MES_FECHADO');
+});
+
+test('verificarSlot: DIA_FECHADO em domingo e LIMITE_ATINGIDO com limite cheio', async () => {
+  const { b, servicoId, duracao, cli } = await ctx();
+
+  // 2026-09-13 é domingo => horario_funcionamento.aberto = false
+  assert.equal(
+    (await verificarSlot(query, { barbeiroId: b, data: '2026-09-13', horario: '10:00',
+      duracaoMinutos: duracao, agora: CEDO })).erro,
+    'DIA_FECHADO');
+
+  await query(`UPDATE agenda_disponibilidade SET limite_por_dia = 1 WHERE ano=2026 AND mes=9`);
+  await agendar(b, cli, servicoId, '09:00', '09:35');
+  assert.equal(
+    (await verificarSlot(query, { barbeiroId: b, data: DATA, horario: '14:00',
+      duracaoMinutos: duracao, agora: CEDO })).erro,
+    'LIMITE_ATINGIDO');
+});
+
 test('verificarSlot: ok para slot livre, erros específicos para os casos', async () => {
   const { b, servicoId, duracao, cli } = await ctx();
   assert.deepEqual(

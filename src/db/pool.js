@@ -21,12 +21,12 @@ export async function withTransaction(fn) {
     await client.query('BEGIN');
     const resultado = await fn(client);
     await client.query('COMMIT');
+    client.release();
     return resultado;
   } catch (err) {
-    await client.query('ROLLBACK');
+    try { await client.query('ROLLBACK'); } catch { /* conexão morta: mantém o erro original */ }
+    client.release(err);
     throw err;
-  } finally {
-    client.release();
   }
 }
 
