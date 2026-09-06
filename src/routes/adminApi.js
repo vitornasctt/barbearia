@@ -18,6 +18,8 @@ import {
   emitirAgendaAtualizada, emitirNovoAgendamento, emitirAgendamentoAtualizado, emitirDashboardTick,
 } from '../realtime/emitir.js';
 import * as cache from '../agenda/cache.js';
+import * as meses from '../repos/disponibilidadeMeses.js';
+import * as bloqueios from '../repos/bloqueios.js';
 
 export const adminApi = express.Router();
 
@@ -128,3 +130,62 @@ adminApi.post('/agendamentos',
     await processarPendentes({ limite: 5 }).catch((e) => req.log?.error({ e }, 'worker'));
     res.status(201).json({ agendamento: item });
   }));
+
+adminApi.get('/disponibilidade',
+  validarQuery(z.object({ ano: z.coerce.number().int(), barbeiro_id: z.coerce.number().int().positive().optional() })),
+  rota(async (req, res) => {
+    res.json({ meses: await meses.doAno(req.query.ano, req.query.barbeiro_id ?? null) });
+  }));
+
+adminApi.post('/disponibilidade',
+  validarCorpo(z.object({
+    ano: z.coerce.number().int(),
+    mes: z.coerce.number().int().min(1).max(12),
+    status: z.enum(['aberto', 'fechado']),
+    limite_por_dia: z.coerce.number().int().nonnegative().nullable().optional(),
+    barbeiro_id: z.coerce.number().int().positive().optional(),
+  })),
+  rota(async (req, res) => {
+    const m = await meses.definir({
+      ano: req.body.ano, mes: req.body.mes, status: req.body.status,
+      limite_por_dia: req.body.limite_por_dia ?? null,
+      barbeiro_id: req.body.barbeiro_id ?? null,
+    });
+    cache.limparTudo();
+    res.json({ mes: m });
+  }));
+
+adminApi.get('/bloqueios',
+  validarQuery(z.object({ de: z.string(), ate: z.string(), barbeiro_id: z.coerce.number().int().positive().optional() })),
+  rota(async (req, res) => {
+    res.json({ bloqueios: await bloqueios.entre(req.query.de, req.query.ate, req.query.barbeiro_id ?? null) });
+  }));
+
+adminApi.post('/bloqueios',
+  validarCorpo(z.object({
+    data: z.string().refine(ehData, 'data inválida'),
+    dia_inteiro: z.boolean().default(false),
+    hora_inicio: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+    hora_fim: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+    motivo: z.string().max(200).optional(),
+    barbeiro_id: z.coerce.number().int().positive().optional(),
+  })),
+  rota(async (req, res) => {
+    const b = await bloqueios.criar({
+      data: req.body.data,
+      hora_inicio: req.body.dia_inteiro ? null : (req.body.hora_inicio ?? null),
+      hora_fim: req.body.dia_inteiro ? null : (req.body.hora_fim ?? null),
+      motivo: req.body.motivo ?? null,
+      barbeiro_id: req.body.barbeiro_id ?? null,
+      criado_por: req.session.usuarioId,
+    });
+    cache.limparTudo();
+    res.status(201).json({ bloqueio: b });
+  }));
+
+adminApi.delete('/bloqueios/:id', rota(async (req, res, next) => {
+  const ok = await bloqueios.remover(Number(req.params.id));
+  if (!ok) return next(new ErroHttp('NAO_ENCONTRADO'));
+  cache.limparTudo();
+  res.status(204).end();
+}));
