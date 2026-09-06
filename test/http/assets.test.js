@@ -14,3 +14,12 @@ test('serve o favicon', async () => {
   assert.equal(res.status, 200);
   assert.match(res.headers['content-type'], /svg/);
 });
+
+test('serve os vendorizados alpine e socket.io', async () => {
+  const app = buildApp();
+  for (const p of ['/vendor/alpine.min.js', '/vendor/socket.io.min.js']) {
+    const res = await request(app).get(p);
+    assert.equal(res.status, 200, p);
+    assert.match(res.headers['content-type'], /javascript/, p);
+  }
+});
