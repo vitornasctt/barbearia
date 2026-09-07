@@ -13,7 +13,8 @@ test.after(() => fecharBanco());
 test.beforeEach(async () => {
   await prepararBanco(); await semearBase(); cache.limparTudo();
   await query(`INSERT INTO agenda_disponibilidade (ano, mes, barbeiro_id, status)
-    VALUES (2026,9,NULL,'aberto'), (extract(year from now())::int, extract(month from now())::int, NULL, 'aberto')`);
+    VALUES (2026,9,NULL,'aberto'), (extract(year from now())::int, extract(month from now())::int, NULL, 'aberto')
+    ON CONFLICT DO NOTHING`);
 });
 
 async function logar() {

@@ -8,11 +8,11 @@ import { prepararBanco } from '../helpers/db.js';
 before(prepararBanco);
 beforeEach(prepararBanco);
 
-test('inicializar() aplica migrações — schema_migrations tem as 3', async () => {
+test('inicializar() aplica migrações — schema_migrations tem as 4', async () => {
   await inicializar();
   const { rows } = await query('SELECT nome FROM schema_migrations ORDER BY nome');
   const nomes = rows.map((r) => r.nome);
-  for (const m of ['001_init.sql', '002_session.sql', '003_status_enviando.sql']) {
+  for (const m of ['001_init.sql', '002_session.sql', '003_status_enviando.sql', '004_meses_nulls_not_distinct.sql']) {
     assert.ok(nomes.includes(m), `faltou ${m}`);
   }
 });
