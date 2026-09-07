@@ -22,8 +22,11 @@
     <ul class="grade-servicos">
       <template x-for="s in dados.servicos" :key="s.id">
         <li><button class="servico-card" @click="escolherServico(s)">
-          <span x-text="s.nome"></span>
-          <span x-text="'R$ ' + Number(s.preco).toFixed(2)"></span>
+          <span class="servico-nome" x-text="s.nome"></span>
+          <div class="servico-rodape">
+            <span class="servico-duracao" x-text="(s.duracao_minutos || s.duracao) + ' min'"></span>
+            <span class="servico-preco" x-text="'R$ ' + Number(s.preco).toFixed(2)"></span>
+          </div>
         </button></li>
       </template>
     </ul>

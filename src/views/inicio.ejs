@@ -1,62 +1,211 @@
 <%# src/views/inicio.ejs %>
-<header class="site-topo">
+<%
+  // Ícones (SVG inline — CSP bloqueia bibliotecas externas) e textos de apoio por serviço.
+  const iconeTesoura = '<path d="M6 3 15 12M6 21 15 12M8.5 8.5 20 20M8.5 15.5 20 4"/><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>';
+  const iconeBarba = '<path d="M4 5c0 6 2 13 8 13s8-7 8-13"/><path d="M8 5v3M16 5v3M12 12v3"/>';
+  const iconeEstrela = '<path d="m12 3 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 18l-5.2 2.7 1-5.8L3.5 9.2l5.9-.9z"/>';
+  function servicoIcone(nome) {
+    const n = String(nome).toLowerCase();
+    if (n.includes('barba') && !n.includes('corte')) return iconeBarba;
+    if (n.includes('+') || (n.includes('corte') && n.includes('barba'))) return iconeEstrela;
+    return iconeTesoura;
+  }
+  function servicoDescricao(nome) {
+    const n = String(nome).toLowerCase();
+    if (n.includes('+') || (n.includes('corte') && n.includes('barba')))
+      return 'O pacote completo: corte na tesoura ou máquina finalizado com barba desenhada e toalha quente.';
+    if (n.includes('barba'))
+      return 'Barba modelada com navalha, toalha quente e produtos de acabamento para um contorno preciso.';
+    if (n.includes('corte'))
+      return 'Corte personalizado ao seu estilo, com máquina e tesoura, lavagem e finalização.';
+    return 'Atendimento individual com hora marcada e acabamento caprichado.';
+  }
+  const diasSemana = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  const telWa = configuracao.telefone_whatsapp ? String(configuracao.telefone_whatsapp).replace(/\D/g,'') : '';
+%>
+
+<header class="nav">
   <a class="marca" href="/">
     <img src="/img/logo.svg" alt="" class="logo">
     <span><%= configuracao.nome_barbearia %></span>
   </a>
-  <a class="btn btn-ghost" href="/minha-conta">Minha conta</a>
+  <nav class="nav-links">
+    <a href="#servicos">Serviços</a>
+    <a href="#equipe">Equipe</a>
+    <a href="#depoimentos">Depoimentos</a>
+    <a href="#contato">Contato</a>
+  </nav>
+  <div class="nav-acoes">
+    <a class="btn btn-ghost" href="/minha-conta">Minha conta</a>
+    <a class="btn btn-primario" href="/agendar">Agendar</a>
+  </div>
 </header>
 
 <section class="hero">
-  <span class="eyebrow">Agendamento online</span>
-  <h1><%= configuracao.nome_barbearia %></h1>
-  <p class="hero-sub">Reserve seu horário em menos de um minuto. Escolha o serviço,
-    o dia e a hora — a confirmação é imediata e você acompanha tudo pela sua conta.</p>
-  <div class="btn-row">
-    <a class="btn btn-primario btn-lg" href="/agendar">Agendar horário</a>
-    <a class="btn btn-ghost btn-lg" href="#servicos">Ver serviços</a>
+  <div class="hero-bg" aria-hidden="true"></div>
+  <div class="hero-inner">
+    <span class="eyebrow">Barbearia &middot; Agendamento online</span>
+    <h1><%= configuracao.nome_barbearia %></h1>
+    <p class="hero-sub">Corte, barba e cuidado com hora marcada. Reserve em menos de um
+      minuto, receba a confirmação no WhatsApp e chegue na hora certa — sem fila, sem espera.</p>
+    <div class="btn-row">
+      <a class="btn btn-primario btn-lg" href="/agendar">Agende seu horário</a>
+      <a class="btn btn-ghost btn-lg" href="#servicos">Ver serviços</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><b>+2.000</b><span>cortes por ano</span></div>
+      <div class="hero-stat"><b>4,9 ★</b><span>avaliação dos clientes</span></div>
+      <div class="hero-stat"><b>60&nbsp;seg</b><span>para agendar online</span></div>
+    </div>
   </div>
-  <span class="hero-nota">Sem cadastro complicado — só nome e celular</span>
 </section>
 
 <main class="conteudo">
-  <section class="secao servicos" id="servicos">
-    <span class="eyebrow">O que fazemos</span>
-    <h2>Serviços</h2>
-    <ul class="servicos-lista">
-      <% servicos.forEach(function (s) { %>
-        <li class="servico-card">
-          <svg class="servico-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
-            <path d="M8.1 8.1 21 21M8.1 15.9 21 3M9 12l3 1.5"/>
-          </svg>
-          <span class="servico-nome"><%= s.nome %></span>
-          <span class="servico-meta"><%= s.duracao_minutos %> min</span>
-          <span class="servico-preco">R$ <%= Number(s.preco).toFixed(2) %></span>
+
+  <section class="secao" id="servicos">
+    <div class="envoltorio">
+      <div class="secao-cabeca centro">
+        <span class="eyebrow">O que fazemos</span>
+        <h2>Serviços &amp; preços</h2>
+        <p>Cada atendimento com hora marcada e acabamento feito com calma. Escolha o serviço na hora de agendar.</p>
+      </div>
+      <ul class="servicos-lista">
+        <% servicos.forEach(function (s) { %>
+          <li class="servico-card">
+            <span class="servico-icone" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><%- servicoIcone(s.nome) %></svg>
+            </span>
+            <span class="servico-nome"><%= s.nome %></span>
+            <p class="servico-desc"><%= servicoDescricao(s.nome) %></p>
+            <div class="servico-rodape">
+              <span class="servico-duracao"><%= s.duracao_minutos %> min</span>
+              <span class="servico-preco">R$ <%= Number(s.preco).toFixed(2) %></span>
+            </div>
+          </li>
+        <% }); %>
+      </ul>
+    </div>
+  </section>
+
+  <section class="secao" id="equipe">
+    <div class="envoltorio">
+      <div class="secao-cabeca centro">
+        <span class="eyebrow">Quem cuida de você</span>
+        <h2>Nossa equipe</h2>
+        <p>Barbeiros com anos de estrada, mão firme e olho para detalhe.</p>
+      </div>
+      <ul class="equipe-grid">
+        <li class="equipe-card">
+          <div class="equipe-foto" aria-hidden="true">MR</div>
+          <h3>Marcos Ribeiro</h3>
+          <p>Barbeiro-chefe &middot; degradê e navalha</p>
         </li>
-      <% }); %>
-    </ul>
+        <li class="equipe-card">
+          <div class="equipe-foto" aria-hidden="true">LF</div>
+          <h3>Lucas Ferraz</h3>
+          <p>Cortes clássicos &middot; tesoura</p>
+        </li>
+        <li class="equipe-card">
+          <div class="equipe-foto" aria-hidden="true">DA</div>
+          <h3>Diego Alves</h3>
+          <p>Barba &middot; toalha quente</p>
+        </li>
+      </ul>
+    </div>
   </section>
 
-  <section class="secao expediente" id="expediente">
-    <span class="eyebrow">Quando abrimos</span>
-    <h2>Horário de funcionamento</h2>
-    <table>
-      <% const dias = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado']; %>
-      <% configuracao.expediente.forEach(function (e) { %>
-        <tr>
-          <th><%= dias[e.dia_semana] %></th>
-          <td><%= e.aberto ? (e.abre.slice(0,5) + ' – ' + e.fecha.slice(0,5)) : 'Fechado' %></td>
-        </tr>
-      <% }); %>
-    </table>
+  <section class="secao" id="depoimentos">
+    <div class="envoltorio">
+      <div class="secao-cabeca centro">
+        <span class="eyebrow">O que dizem</span>
+        <h2>Depoimentos</h2>
+      </div>
+      <ul class="depo-grid">
+        <li class="depo">
+          <div class="depo-estrelas" aria-hidden="true">★★★★★</div>
+          <p class="depo-quote">Melhor barbearia da região. Marquei pelo site em segundos e fui atendido na hora exata.</p>
+          <span class="depo-autor">Rafael M.</span>
+        </li>
+        <li class="depo">
+          <div class="depo-estrelas" aria-hidden="true">★★★★★</div>
+          <p class="depo-quote">Ambiente impecável e acabamento de barba perfeito. Virei cliente fixo.</p>
+          <span class="depo-autor">Bruno T.</span>
+        </li>
+        <li class="depo">
+          <div class="depo-estrelas" aria-hidden="true">★★★★★</div>
+          <p class="depo-quote">Profissionais atenciosos, corte do jeito que pedi. Recomendo de olhos fechados.</p>
+          <span class="depo-autor">André S.</span>
+        </li>
+        <li class="depo">
+          <div class="depo-estrelas" aria-hidden="true">★★★★★</div>
+          <p class="depo-quote">O lembrete no WhatsApp é ótimo, nunca mais perdi horário. Atendimento nota dez.</p>
+          <span class="depo-autor">Felipe C.</span>
+        </li>
+      </ul>
+    </div>
   </section>
 
-  <section class="secao local" id="local">
-    <span class="eyebrow">Como chegar</span>
-    <h2>Onde estamos</h2>
-    <p class="endereco"><%= configuracao.endereco %></p>
-    <iframe class="mapa" src="<%= mapa.embedUrl %>" title="Mapa" loading="lazy"></iframe>
-    <a class="btn btn-ghost" target="_blank" rel="noopener" href="<%= mapa.comoChegarUrl %>">Abrir no mapa</a>
+  <section class="secao" id="galeria">
+    <div class="envoltorio">
+      <div class="secao-cabeca centro">
+        <span class="eyebrow">O ambiente</span>
+        <h2>Galeria</h2>
+      </div>
+      <ul class="galeria">
+        <li><img src="/img/galeria-1.svg" alt="Ambiente da barbearia" loading="lazy"></li>
+        <li><img src="/img/galeria-2.svg" alt="Cadeira de barbeiro" loading="lazy"></li>
+        <li><img src="/img/galeria-3.svg" alt="Ferramentas de barbearia" loading="lazy"></li>
+        <li><img src="/img/galeria-4.svg" alt="Detalhe do acabamento" loading="lazy"></li>
+      </ul>
+    </div>
   </section>
+
+  <section class="cta-faixa">
+    <span class="eyebrow">Pronto?</span>
+    <h2>Sua próxima visita começa agora</h2>
+    <p>Escolha o serviço, o dia e o horário. A confirmação chega no seu WhatsApp na hora.</p>
+    <a class="btn btn-primario btn-lg" href="/agendar">Agende seu horário</a>
+  </section>
+
+  <section class="secao" id="contato">
+    <div class="envoltorio">
+      <div class="secao-cabeca centro">
+        <span class="eyebrow">Onde nos encontrar</span>
+        <h2>Contato &amp; horários</h2>
+      </div>
+      <div class="contato-grid">
+        <div class="info-bloco">
+          <div class="info-linha">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            <div><b>Endereço</b><%= configuracao.endereco %></div>
+          </div>
+          <% if (telWa) { %>
+          <div class="info-linha">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15.5a2 2 0 0 1-2 2A16 16 0 0 1 4 3a2 2 0 0 1 2-2h2.2a2 2 0 0 1 2 1.7l.5 3a2 2 0 0 1-.6 1.9L9 9a14 14 0 0 0 6 6l1.4-1.1a2 2 0 0 1 1.9-.6l3 .5a2 2 0 0 1 1.7 2Z"/></svg>
+            <div><b>WhatsApp</b><a href="https://wa.me/<%= telWa %>" target="_blank" rel="noopener"><%= configuracao.telefone_whatsapp %></a></div>
+          </div>
+          <% } %>
+          <div class="info-linha expediente">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            <div style="flex:1">
+              <b>Horário de funcionamento</b>
+              <table>
+                <% configuracao.expediente.forEach(function (e) { %>
+                  <tr>
+                    <th><%= diasSemana[e.dia_semana] %></th>
+                    <td><%= e.aberto ? (e.abre.slice(0,5) + ' – ' + e.fecha.slice(0,5)) : 'Fechado' %></td>
+                  </tr>
+                <% }); %>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div>
+          <iframe class="mapa" src="<%= mapa.embedUrl %>" title="Mapa" loading="lazy"></iframe>
+          <a class="btn btn-ghost" target="_blank" rel="noopener" href="<%= mapa.comoChegarUrl %>" style="margin-top:1rem">Como chegar</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
 </main>
