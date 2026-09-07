@@ -20,6 +20,9 @@ Estamos aguardando você! 💈`],
 Obrigado por visitar nossa barbearia!
 Esperamos vê-lo em breve. 💈
 Indique para os amigos e ganhe desconto!`],
+  ['codigo_verificacao', 'Código de verificação',
+`Seu código {{codigo}} para {{nome_barbearia}}.
+Vale por 10 minutos. Não compartilhe com ninguém.`],
 ];
 
 const SERVICOS = [

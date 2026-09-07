@@ -1,6 +1,6 @@
 # Modelos de Mensagens WhatsApp (Formato Meta)
 
-Este documento descreve os três modelos de mensagens WhatsApp registrados na WhatsApp Cloud API (Meta), com os placeholders posicionais conforme exigido pelo Gerenciador de Modelos.
+Este documento descreve os modelos de mensagens WhatsApp registrados na WhatsApp Cloud API (Meta), com os placeholders posicionais conforme exigido pelo Gerenciador de Modelos.
 
 ---
 
@@ -107,6 +107,35 @@ Indique para os amigos e ganhe desconto!
 
 ---
 
+## 4. Código de Verificação
+
+**Nome:** `codigo_verificacao`  
+**Categoria:** AUTHENTICATION  
+**Idioma:** pt_BR
+
+### Corpo (formato Meta, placeholders posicionais)
+
+```
+Seu código {{1}} para {{2}}.
+Vale por 10 minutos. Não compartilhe com ninguém.
+```
+
+### Mapa de variáveis
+
+| Placeholder | Variável | Tipo |
+|-------------|----------|------|
+| {{1}} | codigo | string |
+| {{2}} | nome_barbearia | string |
+
+### Exemplo (para o formulário de submissão da Meta)
+
+```
+Seu código 123456 para Minha Barbearia.
+Vale por 10 minutos. Não compartilhe com ninguém.
+```
+
+---
+
 ## Como ativar o envio real
 
 Após criar os modelos acima, siga os passos abaixo para habilitar o envio de mensagens com estes templates:
@@ -129,8 +158,8 @@ Após criar os modelos acima, siga os passos abaixo para habilitar o envio de me
 
 4. **Submissão dos modelos:**
    - No Painel Meta → Gerenciador de Modelos → WhatsApp
-   - Submeta os 3 modelos descritos acima (confirmacao, lembrete_24h, pos_atendimento)
-   - Aguarde aprovação (templates Utility costumam ser aprovados rapidamente)
+   - Submeta os modelos descritos acima (confirmacao, lembrete_24h, pos_atendimento, codigo_verificacao)
+   - Aguarde aprovação (templates Utility costumam ser aprovados rapidamente; AUTHENTICATION também é rápido)
 
 5. **Próximo passo de integração:**
    - **Estado atual:** `src/services/whatsapp.js` envia mensagens com `type: 'text'` (mensagens livres), que funcionam dentro da janela de 24h após o cliente responder
