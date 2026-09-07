@@ -37,6 +37,13 @@ test('GET /minha-conta responde 200 e carrega o módulo', async () => {
   assert.match(res.text, /src="\/js\/minha-conta\.js"/);
 });
 
+test('GET /minha-conta renderiza o container do app do cliente', async () => {
+  const res = await request(buildApp()).get('/minha-conta');
+  assert.equal(res.status, 200);
+  assert.match(res.text, /id="app-conta"/);
+  assert.match(res.text, /x-data="areaCliente\(\)"/);
+});
+
 test('GET /privacidade menciona LGPD e o controlador', async () => {
   const res = await request(buildApp()).get('/privacidade');
   assert.equal(res.status, 200);

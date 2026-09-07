@@ -1,6 +1,78 @@
 <%# src/views/minha-conta.ejs %>
 <a class="voltar" href="/">← Início</a>
 <h1>Minha conta</h1>
-<div id="app-conta" x-data="areaCliente()" x-init="init()"></div>
+<div id="app-conta" x-data="areaCliente()" x-init="init()">
+  <p x-show="carregando">Carregando…</p>
+  <p class="erro-inline" x-show="erro" x-text="erro"></p>
+
+  <div x-show="!carregando && !logado">
+    <h2>Entrar</h2>
+    <label>Celular <input type="tel" x-model="login.celular"></label>
+    <label>Senha <input type="password" x-model="login.senha"></label>
+    <button class="btn-primario" @click="entrar()">Entrar</button>
+    <details>
+      <summary>Entrar sem senha</summary>
+      <label>Nome <input type="text" x-model="semSenha.nome"></label>
+      <label>Celular <input type="tel" x-model="semSenha.celular"></label>
+      <label><input type="checkbox" x-model="semSenha.consentimento">
+        Aceito a <a href="/privacidade" target="_blank">política de privacidade</a></label>
+      <button @click="entrarSemSenha()">Entrar</button>
+    </details>
+  </div>
+
+  <div x-show="!carregando && logado">
+    <nav class="abas">
+      <button :class="aba==='proximos' && 'ativa'" @click="aba='proximos'">Próximos</button>
+      <button :class="aba==='historico' && 'ativa'" @click="aba='historico'">Histórico</button>
+      <button class="sair" @click="sair()">Sair</button>
+    </nav>
+
+    <ul x-show="aba==='proximos'" class="lista-agendamentos">
+      <template x-for="a in proximos" :key="a.id">
+        <li>
+          <span x-text="(a.data_agendamento || a.data) + ' ' + (a.horario_inicio || a.horario)"></span>
+          <span x-text="a.servico?.nome || a.servico_nome"></span>
+          <button @click="abrirRemarcar(a)">Remarcar</button>
+          <button @click="cancelar(a)">Cancelar</button>
+        </li>
+      </template>
+      <li x-show="proximos.length === 0">Nenhum agendamento futuro.</li>
+    </ul>
+
+    <ul x-show="aba==='historico'" class="lista-agendamentos">
+      <template x-for="a in historico" :key="a.id">
+        <li>
+          <span x-text="(a.data_agendamento || a.data) + ' ' + (a.horario_inicio || a.horario)"></span>
+          <span x-text="a.servico?.nome || a.servico_nome"></span>
+          <span class="badge" x-text="a.status"></span>
+        </li>
+      </template>
+      <li x-show="historico.length === 0">Sem histórico.</li>
+    </ul>
+  </div>
+
+  <div class="modal" x-show="remarcando" x-cloak>
+    <div class="modal-conteudo">
+      <h3>Remarcar</h3>
+      <div class="cal-nav">
+        <button @click="remarcando.mes--; carregarDiasRemarcar()">←</button>
+        <span x-text="remarcando && (remarcando.mes + '/' + remarcando.ano)"></span>
+        <button @click="remarcando.mes++; carregarDiasRemarcar()">→</button>
+      </div>
+      <ul class="grade-horarios">
+        <template x-for="d in (remarcando ? remarcando.grade : [])" :key="d">
+          <li><button @click="escolherDiaRemarcar(d)" x-text="d"></button></li>
+        </template>
+      </ul>
+      <ul class="grade-horarios" x-show="remarcando && remarcando.dia">
+        <template x-for="h in (remarcando ? remarcando.horarios : [])" :key="h">
+          <li><button :class="remarcando.horario===h && 'ativa'" @click="remarcando.horario=h" x-text="h"></button></li>
+        </template>
+      </ul>
+      <button class="btn-primario" :disabled="!remarcando || !remarcando.horario" @click="confirmarRemarcar()">Confirmar</button>
+      <button @click="remarcando = null">Fechar</button>
+    </div>
+  </div>
+</div>
 <script src="/js/minha-conta.js" type="module" defer></script>
 <script src="/vendor/alpine.min.js" defer></script>
