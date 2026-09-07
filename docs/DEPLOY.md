@@ -38,18 +38,23 @@ Ou seja: **não existe passo manual de `db:migrate` no deploy**. Basta `npm ci` 
 
 ## Render (caminho principal)
 
-> **Atalho — Blueprint:** o repo tem um `render.yaml` na raiz. Em vez dos passos
-> manuais abaixo, use **Render Dashboard → New → Blueprint**, conecte o repo, e o
-> Render cria o Web Service já configurado (build/start, health check, env vars).
-> Ele só vai pedir os valores marcados como `sync: false` no `render.yaml`
-> (`DATABASE_URL`, `APP_URL`, `ADMIN_EMAIL`, `ADMIN_SENHA`, `GOOGLE_MAPS_API_KEY`);
-> `SESSION_SECRET` é gerado automaticamente. Preencha `APP_URL` depois do primeiro
-> deploy, com a URL pública. Os passos manuais abaixo continuam válidos como
-> referência do que o blueprint faz.
+> **Atalho — Blueprint:** o repo tem blueprints do Render prontos. Em vez dos
+> passos manuais abaixo, use **Render Dashboard → Blueprints → New Blueprint
+> Instance**, conecte o repo, e o Render cria o serviço já configurado
+> (build/start, health check, env vars). Ele só pede os valores marcados como
+> `sync: false` (`DATABASE_URL`, `APP_URL`, `ADMIN_EMAIL`, `ADMIN_SENHA`,
+> `GOOGLE_MAPS_API_KEY`); `SESSION_SECRET` é gerado. Preencha `APP_URL` depois do
+> primeiro deploy, com a URL pública.
 >
-> Há também um **`render.demo.yaml`** (serviço `barbearia-demo`, `plan: free`) para
-> uma instância de demonstração descartável — mesmo app, sem custo. Use um projeto
-> Supabase separado no `DATABASE_URL` dela.
+> O Render só lê o arquivo `render.yaml` na raiz:
+> - **`render.yaml`** (ativo) — `barbearia-demo`, `plan: free`, para uma instância
+>   de demonstração descartável. Use um projeto Supabase **separado** no
+>   `DATABASE_URL` dela.
+> - **`render.prod.yaml`** — Web Service **Starter** (~US$ 7/mês) para produção.
+>   Para usar, renomeie-o para `render.yaml` (o serviço de demo já criado não é
+>   afetado) ou junte os dois serviços num só arquivo.
+>
+> Os passos manuais abaixo continuam válidos como referência do que o blueprint faz.
 
 ### 1. Banco de dados
 

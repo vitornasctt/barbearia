@@ -1,63 +1,60 @@
-# Render Blueprint — https://render.com/docs/blueprint-spec
+# Render Blueprint — instância de DEMONSTRAÇÃO (grátis)
+# https://render.com/docs/blueprint-spec
+#
+# O Render só lê o arquivo chamado exatamente `render.yaml` na raiz. Este é o
+# blueprint ATIVO: serviço `barbearia-demo`, `plan: free` (US$ 0, sem cartão).
+# A configuração de PRODUÇÃO (Web Service Starter) está em `render.prod.yaml` —
+# quando for para produção, renomeie os dois (prod -> render.yaml).
+#
+# Trade-offs do free: dorme após ~15 min de inatividade, acorda em ~30s na
+# primeira visita, e o WebSocket cai quando hiberna (reconecta sozinho ao acordar).
+# Suficiente para mostrar o sistema a um comprador em potencial.
 #
 # Como usar:
-#   1. Render Dashboard -> New -> Blueprint -> conectar o repo vitornasctt/barbearia
-#   2. O Render lê este arquivo e cria o Web Service "barbearia".
-#   3. Na tela de criação ele pede os valores marcados como `sync: false` abaixo
-#      (DATABASE_URL, APP_URL, ADMIN_EMAIL, ADMIN_SENHA, GOOGLE_MAPS_API_KEY).
-#   4. `SESSION_SECRET` é gerado pelo próprio Render.
-#   5. Deploy: `npm ci` (build) + `npm start` (aplica migrações + seed e sobe).
-#      Health check em GET /healthz.
+#   Render Dashboard -> Blueprints -> New Blueprint Instance ->
+#   repo vitornasctt/barbearia -> preencha os valores `sync: false`.
 #
-# Banco: usa o Supabase existente (Session Pooler, porta 5432, senha
-# percent-encoded na URL). NÃO há bloco `databases:` aqui de propósito.
+# Banco: recomendado um projeto Supabase SEPARADO só para a demo, para os
+# agendamentos de teste não se misturarem com os de produção. (Se não ligar,
+# pode reusar o mesmo DATABASE_URL de produção.) O boot migra + semeia sozinho:
+# 3 serviços, expediente 09:00-19:30, templates e o admin. Depois é só abrir
+# /admin -> Agenda/Meses -> abrir um mês para liberar horários.
 #
-# IMPORTANTE: uma única instância. Socket.io e o cache são em memória — escalar
-# horizontalmente sem Redis quebra o tempo real. Não aumente `numInstances`.
+# Instância única (Socket.io e cache em memória) — não escale.
 
 services:
   - type: web
-    name: barbearia
+    name: barbearia-demo
     runtime: node
-    plan: starter          # sempre ligado; free dorme e derruba o WebSocket
-    region: virginia       # mais perto do Supabase sa-east-1 entre as regiões do Render
+    plan: free
+    region: virginia
     branch: main
     numInstances: 1
     buildCommand: npm ci
     startCommand: npm start
     healthCheckPath: /healthz
-    autoDeploy: true        # deploy a cada push na main (o CI roda antes, no GitHub)
+    autoDeploy: true          # acompanha a main; o CI do GitHub roda antes
     envVars:
       - key: NODE_ENV
-        value: production
+        value: production      # mesma config da produção, para a demo ser fiel
       - key: TZ
         value: America/Sao_Paulo
       - key: LOG_LEVEL
         value: info
       - key: COOKIE_SECURE
-        value: "1"
-      # SESSION_SECRET: gerado pelo Render (>= 32 chars, exigência do config.js em prod).
+        value: "1"             # Render free também tem HTTPS
       - key: SESSION_SECRET
         generateValue: true
-      # DATABASE_URL: cole a Session Pooler URL do Supabase (porta 5432).
-      # Se a senha tiver caractere especial, ela precisa estar percent-encoded na URL.
+      # DATABASE_URL: de preferência um projeto Supabase novo só p/ demo
+      # (Session Pooler, porta 5432, senha percent-encoded).
       - key: DATABASE_URL
         sync: false
-      # APP_URL: preencha DEPOIS do primeiro deploy com a URL pública
-      # (https://barbearia.onrender.com ou o domínio custom). É a única origem
-      # aceita para requisições mutadoras (ORIGENS_PERMITIDAS fica vazio de propósito).
+      # APP_URL: preencha após o 1º deploy (ex. https://barbearia-demo.onrender.com).
       - key: APP_URL
         sync: false
       - key: ADMIN_EMAIL
         sync: false
-      # ADMIN_SENHA: senha inicial do painel; troque no primeiro login.
       - key: ADMIN_SENHA
         sync: false
-      # GOOGLE_MAPS_API_KEY: opcional. Vazio => mapa via OpenStreetMap.
       - key: GOOGLE_MAPS_API_KEY
         sync: false
-      # WhatsApp / Twilio: adicione no painel quando tiver as contas.
-      # Vazios => modo simulado (grava em mensagens_whatsapp, não envia).
-      # WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_TOKEN, WHATSAPP_VERIFY_TOKEN,
-      # WHATSAPP_APP_SECRET, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN,
-      # TWILIO_VERIFY_SERVICE_SID
