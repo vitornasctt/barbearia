@@ -7,11 +7,11 @@ function painelClientes() {
     async init() { await this.buscar(); },
     async buscar() {
       const { ok, corpo } = await pedirJson('/api/admin/clientes?busca=' + encodeURIComponent(this.busca));
-      if (ok) this.itens = corpo.clientes || corpo;
+      if (ok) this.itens = corpo.itens || corpo.clientes || corpo;
     },
     async abrir(c) {
       const { ok, corpo } = await pedirJson('/api/admin/clientes/' + c.id);
-      if (ok) this.ficha = corpo.cliente || corpo;
+      if (ok) this.ficha = { ...(corpo.cliente || corpo), agendamentos: corpo.agendamentos?.itens || corpo.agendamentos || [] };
     },
     async anonimizar() {
       if (!confirm('Anonimizar este cliente? Ação irreversível.')) return;

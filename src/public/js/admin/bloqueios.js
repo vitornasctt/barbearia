@@ -15,9 +15,10 @@ function painelBloqueios() {
     },
     async criar() {
       const b = this.novo;
+      const temHoras = !b.diaInteiro && b.inicio && b.fim;
       const body = {
-        data: b.data, motivo: b.motivo,
-        ...(b.diaInteiro ? {} : { hora_inicio: b.inicio, hora_fim: b.fim }),
+        data: b.data, motivo: b.motivo, dia_inteiro: b.diaInteiro,
+        ...(temHoras ? { hora_inicio: b.inicio, hora_fim: b.fim } : {}),
       };
       const { ok } = await pedirJson('/api/admin/bloqueios', { method: 'POST', body: JSON.stringify(body) });
       if (ok) { toast('Bloqueio criado.', 'info'); this.novo = { data: '', diaInteiro: true, inicio: '', fim: '', motivo: '' }; this.carregar(); }
