@@ -56,3 +56,9 @@ for (const slug of ['meses', 'bloqueios', 'servicos', 'clientes', 'comissoes', '
     assert.match(res.text, new RegExp(`src="/js/admin/${slug}\\.js"`));
   });
 }
+
+test('páginas do admin não são cacheáveis', async () => {
+  const agente = await logarEquipe();
+  const res = await agente.get('/admin');
+  assert.match(res.headers['cache-control'], /no-store/);
+});

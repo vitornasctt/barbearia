@@ -5,6 +5,8 @@ import { paginaEquipe, equipeValida } from '../auth/middleware.js';
 
 export const adminPaginas = express.Router();
 
+adminPaginas.use((req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
+
 adminPaginas.get('/login', (req, res) => {
   if (equipeValida(req.session)) return res.redirect(302, '/admin');
   renderAdmin(res, 'login', { telaAtiva: null, semChrome: true, titulo: 'Entrar' });

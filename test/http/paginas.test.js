@@ -76,3 +76,8 @@ test('throw numa rota de página real vira HTML 500 pelo buildApp (sem stack)', 
   assert.match(res.text, /Algo deu errado/);
   assert.doesNotMatch(res.text, /detalhe secreto e2e/);
 });
+
+test('a landing manda Cache-Control público curto', async () => {
+  const res = await request(buildApp()).get('/');
+  assert.match(res.headers['cache-control'] || '', /max-age=\d+/);
+});
