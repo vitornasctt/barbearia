@@ -20,6 +20,10 @@ const telas = [
   ['bloqueios', 'Bloqueios'],
   ['servicos', 'Serviços'],
   ['clientes', 'Clientes'],
+  ['comissoes', 'Comissões'],
+  ['configuracao', 'Configuração'],
+  ['templates', 'Templates'],
+  ['mensagens', 'Mensagens'],
 ];
 for (const [slug, titulo] of telas) {
   adminPaginas.get('/' + slug, paginaEquipe, (req, res) => {

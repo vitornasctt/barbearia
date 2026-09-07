@@ -1,0 +1,26 @@
+<%# src/views/admin/comissoes.ejs %>
+<h1>Comissões</h1>
+<div x-data="painelComissoes()" x-init="init()">
+  <form class="filtros" @submit.prevent="carregar()">
+    <input type="number" x-model.number="mes" min="1" max="12">
+    <input type="number" x-model.number="ano">
+    <button>Ver</button>
+    <button type="button" disabled title="Fase 3">PDF</button>
+    <button type="button" disabled title="Fase 3">Excel</button>
+  </form>
+  <table class="tabela">
+    <thead><tr><th>Serviço</th><th>Qtde</th><th>Faturamento</th><th>%</th><th>Comissão</th></tr></thead>
+    <tbody>
+      <template x-for="l in linhas" :key="l.servico_id || l.servico">
+        <tr>
+          <td x-text="l.servico?.nome || l.servico_nome || l.servico"></td>
+          <td x-text="l.quantidade ?? l.qtde"></td>
+          <td x-text="fmt(l.faturamento)"></td>
+          <td x-text="(l.comissao_percentual ?? l.percentual) + '%'"></td>
+          <td x-text="fmt(l.comissao)"></td>
+        </tr>
+      </template>
+    </tbody>
+    <tfoot><tr><th>Total</th><td></td><td x-text="fmt(total.faturamento)"></td><td></td><td x-text="fmt(total.comissao)"></td></tr></tfoot>
+  </table>
+</div>

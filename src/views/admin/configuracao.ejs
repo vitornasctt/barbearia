@@ -1,0 +1,25 @@
+<%# src/views/admin/configuracao.ejs %>
+<h1>Configuração</h1>
+<div x-data="painelConfiguracao()" x-init="init()">
+  <p class="erro-inline" x-show="erro" x-text="erro"></p>
+  <label>Nome <input x-model="c.nome_barbearia"></label>
+  <label>Endereço <input x-model="c.endereco"></label>
+  <label>Latitude <input type="number" step="any" x-model.number="c.latitude"></label>
+  <label>Longitude <input type="number" step="any" x-model.number="c.longitude"></label>
+  <label>WhatsApp <input x-model="c.telefone_whatsapp"></label>
+  <label>Intervalo (min) <input type="number" x-model.number="c.intervalo_minutos"></label>
+  <label>Antecedência mínima (h) <input type="number" x-model.number="c.antecedencia_min_horas"></label>
+  <h2>Expediente</h2>
+  <% /* client renders rows */ %>
+  <table>
+    <template x-for="(e, i) in (c.expediente || [])" :key="i">
+      <tr>
+        <th x-text="diaNome(e.dia_semana)"></th>
+        <td><input type="checkbox" x-model="e.aberto"></td>
+        <td><input type="time" x-model="e.abre"></td>
+        <td><input type="time" x-model="e.fecha"></td>
+      </tr>
+    </template>
+  </table>
+  <button class="btn-primario" @click="salvar()">Salvar</button>
+</div>
