@@ -60,15 +60,22 @@ publicas.get('/dias',
     const { ano, mes } = req.query;
     const barbeiroId = req.query.barbeiro_id ?? await barbeiroPadrao();
     const ultimo = Number(fimDoMes(ano, mes).slice(-2));
-    const dias = [];
-    let fechado = null;
+
+    const datas = [];
     for (let d = 1; d <= ultimo; d++) {
-      const data = `${ano}-${String(mes).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const r = await horariosDisponiveis({ barbeiroId, data, servicoId: req.query.servico_id, sessionId: req.sessionId });
-      if (r.fechado === 'mes_fechado') { fechado = 'MES_FECHADO'; break; }
-      if (r.disponivel.length > 0) dias.push(data);
+      datas.push(`${ano}-${String(mes).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
     }
-    res.json({ dias, fechado });
+    // Uma chamada por dia, mas em paralelo (o loop sequencial fazia ~31 idas ao
+    // banco em série — inviável com o banco remoto).
+    const resultados = await Promise.all(datas.map((data) =>
+      horariosDisponiveis({ barbeiroId, data, servicoId: req.query.servico_id, sessionId: req.sessionId }),
+    ));
+
+    if (resultados.some((r) => r.fechado === 'mes_fechado')) {
+      return res.json({ dias: [], fechado: 'MES_FECHADO' });
+    }
+    const dias = datas.filter((_, i) => resultados[i].disponivel.length > 0);
+    res.json({ dias, fechado: null });
   }));
 
 const corpoLock = z.object({
