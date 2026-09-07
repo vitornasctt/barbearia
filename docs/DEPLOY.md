@@ -11,7 +11,7 @@ O aplicativo é um processo Node único (Express + Socket.io). O cron (`node-cro
 
 ## Pré-requisitos
 
-- **Node.js ≥ 20.** O repositório fixa a versão **24** no `.nvmrc`; `package.json` declara `engines.node` `>=20`. Use 20 ou mais recente; 24 é o alvo testado (CI roda em 24).
+- **Node ≥ 22 (repo fixa 24 no `.nvmrc`).** `package.json` declara `engines.node` `>=22`. Use 22 ou mais recente; 24 é o alvo testado (CI roda em 24). O `npm start` usa `--env-file-if-exists=.env`: lê `.env` se existir; em PaaS as variáveis vêm do painel.
 - **PostgreSQL ≥ 15.** A migração `004` usa `UNIQUE NULLS NOT DISTINCT`, sintaxe introduzida no PostgreSQL 15. Bancos < 15 falham ao aplicar as migrações e o start aborta. Supabase é 17; a instância do Render e a do VPS devem ser ≥ 15.
 
 ### `npm start` aplica migrações + seed automaticamente
@@ -92,7 +92,7 @@ node -e "console.log(crypto.randomBytes(32).toString('hex'))"
 | `COOKIE_SECURE` | `1` |
 | `ORIGENS_PERMITIDAS` | `https://<seu-dominio>` (mesmo valor de `APP_URL`) |
 
-O cookie de sessão já vira `Secure` quando `NODE_ENV=production`; setar `COOKIE_SECURE=1` deixa explícito. `app.set('trust proxy', 1)` já está no código, então os headers `X-Forwarded-*` do Render são respeitados. **`ORIGENS_PERMITIDAS` vazio libera qualquer origem (inclusive localhost)** — em produção **preencha** com o domínio.
+O cookie de sessão já vira `Secure` quando `NODE_ENV=production`; setar `COOKIE_SECURE=1` deixa explícito. `app.set('trust proxy', 1)` já está no código, então os headers `X-Forwarded-*` do Render são respeitados. **`ORIGENS_PERMITIDAS` vazio ⇒ só `APP_URL` é aceito (recomendado, é o mais restrito).** Use esta variável apenas para **origens adicionais** — ex. um domínio alternativo — em CSV.
 
 #### Opcionais
 
@@ -214,7 +214,7 @@ ORIGENS_PERMITIDAS=https://seu-dominio
 LOG_LEVEL=info
 ```
 
-`COOKIE_SECURE=1` é **obrigatório** aqui (o TLS termina no nginx, então o Node não sabe sozinho que a conexão é HTTPS). `ORIGENS_PERMITIDAS` **não pode ficar vazio** em produção.
+`COOKIE_SECURE=1` é **obrigatório** aqui (o TLS termina no nginx, então o Node não sabe sozinho que a conexão é HTTPS). `ORIGENS_PERMITIDAS` vazio ⇒ só `APP_URL` é aceito (recomendado). Use a variável apenas para **origens adicionais** — ex. um domínio alternativo — em CSV.
 
 ### 5. Rodar sob PM2
 
@@ -307,6 +307,23 @@ Se o banco já foi semeado durante o desenvolvimento (P1/P2/P3), atenção:
 - Num banco **novo** de produção, esses placeholders sobem como se fossem conteúdo real.
 
 **Em ambos os casos:** logo após o primeiro deploy, entre em **`/admin/configuracao`** e preencha os valores reais — `telefone_whatsapp`, `endereco`, `latitude`, `longitude` (e o resto da configuração da barbearia). É a tela que grava por cima; o seed não.
+
+Trocar `ADMIN_EMAIL` depois do primeiro deploy cria um **segundo** admin (o upsert é `ON CONFLICT (email)`), não renomeia o primeiro.
+
+---
+
+## Antes do primeiro deploy do P4: de-dup da migração 004
+
+A migração `004_meses_nulls_not_distinct.sql` troca o `UNIQUE` de `agenda_disponibilidade` por `UNIQUE NULLS NOT DISTINCT`. Se o banco-alvo já tiver linhas de "mês global" (`barbeiro_id IS NULL`) duplicadas para o mesmo `(ano, mes)`, o `ADD CONSTRAINT` falha e, como as migrações rodam no boot, o `npm start` aborta.
+
+Antes do primeiro deploy do P4, rode contra o banco-alvo:
+
+```sql
+SELECT ano, mes, count(*) FROM agenda_disponibilidade
+WHERE barbeiro_id IS NULL GROUP BY ano, mes HAVING count(*) > 1;
+```
+
+Se retornar linhas, mantenha só o `id` mais novo de cada `(ano, mes)` e apague o resto antes de subir. (O banco de dev/prod atual foi verificado **vazio** em 2026-09-07 — este deploy é seguro; a checagem vale para outros ambientes: um Postgres de VPS, um dump restaurado.)
 
 ---
 

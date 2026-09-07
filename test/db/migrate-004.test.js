@@ -1,10 +1,9 @@
 import { test, before, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { inicializar } from '../../src/bootstrap.js';
 import { query } from '../../src/db/pool.js';
 import { prepararBanco } from '../helpers/db.js';
 
-before(async () => { await prepararBanco(); await inicializar(); });
+before(prepararBanco);
 beforeEach(prepararBanco);
 
 test('a constraint NULLS NOT DISTINCT existe e a antiga foi removida', async () => {

@@ -45,6 +45,8 @@ Respondem HTML renderizado (`renderPagina` / `renderAdmin`); não JSON.
 
 "redirect se não-equipe" = `paginaEquipe` → `302 /admin/login?next=<url>` quando a sessão não é de equipe válida.
 
+O `Cache-Control: no-store` anotado em `GET /admin` aplica-se a **todas** as rotas `/admin/*` — o middleware está montado no router inteiro, não só em `/admin`.
+
 ---
 
 ## 2. Auth

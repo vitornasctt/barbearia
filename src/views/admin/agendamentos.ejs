@@ -32,9 +32,9 @@
       </label>
 
       <div class="cal-nav" x-show="novo.servico_id">
-        <button type="button" @click="novo.mes--; carregarDiasNovo()">←</button>
+        <button type="button" @click="mudarMesNovo(-1)">←</button>
         <span x-text="novo.mes + '/' + novo.ano"></span>
-        <button type="button" @click="novo.mes++; carregarDiasNovo()">→</button>
+        <button type="button" @click="mudarMesNovo(1)">→</button>
       </div>
       <ul class="grade-horarios" x-show="novo.dias.length">
         <template x-for="d in novo.dias" :key="d">

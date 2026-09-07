@@ -43,6 +43,12 @@ function painelAgendamentos() {
       const { ok, corpo } = await pedirJson('/api/agenda/dias?' + q);
       this.novo.dias = ok ? (corpo.dias || []) : [];
     },
+    mudarMesNovo(delta) {
+      this.novo.mes += delta;
+      if (this.novo.mes < 1) { this.novo.mes = 12; this.novo.ano--; }
+      if (this.novo.mes > 12) { this.novo.mes = 1; this.novo.ano++; }
+      this.carregarDiasNovo();
+    },
     async escolherDiaNovo(d) {
       this.novo.data = d; this.novo.horario = '';
       const q = `data=${d}&servico_id=${this.novo.servico_id}`;

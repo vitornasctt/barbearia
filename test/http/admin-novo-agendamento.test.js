@@ -5,6 +5,7 @@ import { prepararBanco } from '../helpers/db.js';
 import { resetRateLimit } from '../../src/auth/rateLimit.js';
 import { logarEquipe } from '../helpers/sessao.js';
 import { query } from '../../src/db/pool.js';
+import { config } from '../../src/config.js';
 
 before(prepararBanco);
 beforeEach(async () => { await prepararBanco(); resetRateLimit(); });
@@ -51,7 +52,7 @@ test('cria agendamento para cliente novo (nome+celular)', async () => {
   const { servicoId } = await contexto();
   await abrirMeses();
   const { data, horarios } = await dataComHorarios(agente, servicoId);
-  const res = await agente.post('/api/admin/agendamentos').set('Origin', 'http://localhost:3000').send({
+  const res = await agente.post('/api/admin/agendamentos').set('Origin', config.APP_URL).send({
     cliente: { nome: 'Walk In', celular: '11988887777' }, servico_id: servicoId, data, horario: horarios[0],
   });
   assert.equal(res.status, 201);
@@ -64,7 +65,7 @@ test('cria para cliente existente por cliente_id', async () => {
   const c = await query(`INSERT INTO clientes (nome, celular) VALUES ('Fulano','11977776666') RETURNING id`);
   await abrirMeses();
   const { data, horarios } = await dataComHorarios(agente, servicoId);
-  const res = await agente.post('/api/admin/agendamentos').set('Origin', 'http://localhost:3000').send({
+  const res = await agente.post('/api/admin/agendamentos').set('Origin', config.APP_URL).send({
     cliente_id: c.rows[0].id, servico_id: servicoId, data, horario: horarios[0],
   });
   assert.equal(res.status, 201);
@@ -77,9 +78,9 @@ test('409 quando o horário já está ocupado', async () => {
   const { data, horarios } = await dataComHorarios(agente, servicoId);
   const horario = horarios[0];
   const body = { cliente: { nome: 'A', celular: '11900000001' }, servico_id: servicoId, data, horario };
-  const um = await agente.post('/api/admin/agendamentos').set('Origin', 'http://localhost:3000').send(body);
+  const um = await agente.post('/api/admin/agendamentos').set('Origin', config.APP_URL).send(body);
   assert.equal(um.status, 201);
-  const dois = await agente.post('/api/admin/agendamentos').set('Origin', 'http://localhost:3000')
+  const dois = await agente.post('/api/admin/agendamentos').set('Origin', config.APP_URL)
     .send({ ...body, cliente: { nome: 'B', celular: '11900000002' } });
   assert.equal(dois.status, 409);
   assert.match(dois.body.erro, /HORARIO_INDISPONIVEL|SLOT_OCUPADO/);

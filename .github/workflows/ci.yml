@@ -24,6 +24,7 @@ jobs:
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/barbearia_test?sslmode=disable
       TEST_SCHEMA: test
+      TZ: America/Sao_Paulo
       NODE_ENV: test
       SESSION_SECRET: ci-secret-0000000000000000000000000000000000
       ADMIN_EMAIL: dono@teste.local
@@ -35,7 +36,4 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
-      - run: |
-          : > .env
-          : > .env.test
       - run: npm test
