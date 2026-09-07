@@ -39,7 +39,7 @@ export function buildApp({ io = null } = {}) {
   app.set('trust proxy', 1);
   app.use(pinoHttp({
     level: config.LOG_LEVEL,
-    redact: ['req.body.senha', 'req.headers.cookie', 'req.headers.authorization'],
+    redact: ['req.body.senha', 'req.body.nova_senha', 'req.body.codigo', 'req.headers.cookie', 'req.headers.authorization'],
   }));
   app.use((req, res, next) => { req.io = io; next(); });
   app.use(helmet({

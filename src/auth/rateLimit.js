@@ -11,11 +11,18 @@ const bloqueio = (req, res, next) => next(new ErroHttp('MUITAS_TENTATIVAS'));
 export const storeLogin = new MemoryStore();
 export const storeLoginIp = new MemoryStore();
 export const storeMensagens = new MemoryStore();
+export const storeOtpCelular = new MemoryStore();
+export const storeOtpIp = new MemoryStore();
+// Referência de conveniência que reseta ambos os stores de OTP
+export const storeOtp = {
+  resetAll: () => { storeOtpCelular.resetAll?.(); storeOtpIp.resetAll?.(); },
+};
 
 export function resetRateLimit() {
   storeLogin.resetAll?.();
   storeLoginIp.resetAll?.();
   storeMensagens.resetAll?.();
+  storeOtp.resetAll?.();
 }
 
 export const limiteLogin = rateLimit({
@@ -43,6 +50,28 @@ export const limiteMensagens = rateLimit({
   windowMs: 5 * 60_000,
   limit: 30,
   store: storeMensagens,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  keyGenerator: (req) => req.ip,
+  handler: bloqueio,
+});
+
+// OTP: por (IP + celular) — trava pedir código repetidamente para o mesmo número
+export const limiteOtpCelular = rateLimit({
+  windowMs: 10 * 60_000,
+  limit: 3,
+  store: storeOtpCelular,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  keyGenerator: (req) => `${req.ip}:${req.body?.celular ?? ''}`,
+  handler: bloqueio,
+});
+
+// OTP: só por IP — trava varredura de números
+export const limiteOtpIp = rateLimit({
+  windowMs: 10 * 60_000,
+  limit: 20,
+  store: storeOtpIp,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   keyGenerator: (req) => req.ip,
