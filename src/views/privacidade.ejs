@@ -1,7 +1,12 @@
 <%# src/views/privacidade.ejs %>
-<div class="pagina">
-<a class="voltar" href="/">← Início</a>
-<h1>Política de privacidade (LGPD)</h1>
+<div class="pagina-head">
+  <div class="pagina-head-inner">
+    <a class="marca" href="/"><img src="/img/logo.svg" alt="" class="logo"><span><%= configuracao.nome_barbearia %></span></a>
+    <a class="voltar" href="/">← Início</a>
+  </div>
+  <h1 class="pagina-titulo">Política de privacidade (LGPD)</h1>
+</div>
+<div class="pagina prosa">
 <p>Esta política descreve como <%= configuracao.nome_barbearia %> trata dados pessoais,
 em conformidade com a Lei Geral de Proteção de Dados (LGPD, Lei 13.709/2018).</p>
 <h2>Dados coletados</h2>

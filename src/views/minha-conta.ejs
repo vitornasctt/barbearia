@@ -1,7 +1,12 @@
 <%# src/views/minha-conta.ejs %>
+<div class="pagina-head">
+  <div class="pagina-head-inner">
+    <a class="marca" href="/"><img src="/img/logo.svg" alt="" class="logo"><span><%= configuracao.nome_barbearia %></span></a>
+    <a class="voltar" href="/">← Início</a>
+  </div>
+  <h1 class="pagina-titulo">Minha conta</h1>
+</div>
 <div class="pagina">
-<a class="voltar" href="/">← Início</a>
-<h1>Minha conta</h1>
 <div id="app-conta" x-data="areaCliente()" x-init="init()">
   <p x-show="carregando">Carregando…</p>
   <p class="erro-inline" x-show="erro" x-text="erro"></p>
@@ -37,8 +42,11 @@
           <button @click="cancelar(a)">Cancelar</button>
         </li>
       </template>
-      <li x-show="proximos.length === 0">Nenhum agendamento futuro.</li>
     </ul>
+    <div class="vazio" x-show="aba==='proximos' && proximos.length === 0">
+      Você não tem nenhum agendamento marcado.
+      <a class="btn btn-primario" href="/agendar">Agendar horário</a>
+    </div>
 
     <ul x-show="aba==='historico'" class="lista-agendamentos">
       <template x-for="a in historico" :key="a.id">
@@ -48,8 +56,10 @@
           <span class="badge" x-text="a.status"></span>
         </li>
       </template>
-      <li x-show="historico.length === 0">Sem histórico.</li>
     </ul>
+    <div class="vazio" x-show="aba==='historico' && historico.length === 0">
+      Nenhum atendimento no histórico ainda.
+    </div>
   </div>
 
   <div class="modal" x-show="remarcando" x-cloak>

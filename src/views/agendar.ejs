@@ -1,7 +1,12 @@
 <%# src/views/agendar.ejs %>
+<div class="pagina-head">
+  <div class="pagina-head-inner">
+    <a class="marca" href="/"><img src="/img/logo.svg" alt="" class="logo"><span><%= configuracao.nome_barbearia %></span></a>
+    <a class="voltar" href="/">← Início</a>
+  </div>
+  <h1 class="pagina-titulo">Agendar horário</h1>
+</div>
 <div class="pagina">
-<a class="voltar" href="/">← Início</a>
-<h1>Agendar horário</h1>
 <div id="app-agendar" x-data="fluxoAgendamento()" x-init="init()">
   <p class="erro-inline" x-show="erro" x-text="erro"></p>
 
