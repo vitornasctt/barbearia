@@ -90,7 +90,7 @@ node -e "console.log(crypto.randomBytes(32).toString('hex'))"
 | Var | Valor |
 |---|---|
 | `COOKIE_SECURE` | `1` |
-| `ORIGENS_PERMITIDAS` | `https://<seu-dominio>` (mesmo valor de `APP_URL`) |
+| `ORIGENS_PERMITIDAS` | deixe **vazio** (só `APP_URL` é aceito); preencha só p/ origens adicionais |
 
 O cookie de sessão já vira `Secure` quando `NODE_ENV=production`; setar `COOKIE_SECURE=1` deixa explícito. `app.set('trust proxy', 1)` já está no código, então os headers `X-Forwarded-*` do Render são respeitados. **`ORIGENS_PERMITIDAS` vazio ⇒ só `APP_URL` é aceito (recomendado, é o mais restrito).** Use esta variável apenas para **origens adicionais** — ex. um domínio alternativo — em CSV.
 
@@ -121,9 +121,8 @@ Em **Settings → Custom Domains** do Web Service, adicione o domínio e siga as
 Depois que o domínio estiver ativo, **atualize**:
 
 - `APP_URL` → `https://<seu-dominio>`
-- `ORIGENS_PERMITIDAS` → `https://<seu-dominio>`
 
-e faça um novo deploy (mudança de env var já dispara um).
+e faça um novo deploy (mudança de env var já dispara um). `ORIGENS_PERMITIDAS` continua vazio — como `APP_URL` já é o domínio, ele passa a ser a única origem aceita.
 
 ### 7. Webhook do WhatsApp (quando for ativar)
 
@@ -210,7 +209,7 @@ APP_URL=https://seu-dominio
 ADMIN_EMAIL=dono@barbearia.com
 ADMIN_SENHA=troque-no-primeiro-login
 COOKIE_SECURE=1
-ORIGENS_PERMITIDAS=https://seu-dominio
+ORIGENS_PERMITIDAS=
 LOG_LEVEL=info
 ```
 

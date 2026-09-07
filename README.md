@@ -4,7 +4,7 @@ A complete real-time barbershop booking platform with public online scheduling, 
 
 ## Stack
 
-- **Runtime:** Node ≥ 22 (repo fixa 24 no `.nvmrc`) (ESM); `engines.node` ≥ 22
+- **Runtime:** Node ≥ 22 (ESM); repo fixa 24 no `.nvmrc`, `engines.node` ≥ 22
 - **Server:** Express 4 + Socket.io (same process, no clustering)
 - **Frontend:** EJS (server-rendered) + Alpine.js (no build step), CSS with dark theme
 - **Database:** PostgreSQL ≥ 15 (Supabase Session Pooler in dev)
