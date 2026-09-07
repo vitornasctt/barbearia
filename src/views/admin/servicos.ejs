@@ -1,0 +1,27 @@
+<%# src/views/admin/servicos.ejs %>
+<h1>Serviços</h1>
+<div x-data="painelServicos()" x-init="init()">
+  <table class="tabela">
+    <thead><tr><th>Nome</th><th>Duração</th><th>Preço</th><th>% comissão</th><th>Ativo</th><th></th></tr></thead>
+    <tbody>
+      <template x-for="s in itens" :key="s.id">
+        <tr>
+          <td><input x-model="s.nome"></td>
+          <td><input type="number" x-model.number="s.duracao_minutos" style="width:5rem"></td>
+          <td><input type="number" step="0.01" x-model.number="s.preco" style="width:6rem"></td>
+          <td><input type="number" step="0.01" x-model.number="s.comissao_percentual" style="width:5rem"></td>
+          <td><input type="checkbox" x-model="s.ativo"></td>
+          <td><button @click="salvar(s)">Salvar</button><button @click="remover(s)">Remover</button></td>
+        </tr>
+      </template>
+    </tbody>
+  </table>
+  <h2>Novo serviço</h2>
+  <form class="filtros" @submit.prevent="criar()">
+    <input placeholder="nome" x-model="novo.nome" required>
+    <input type="number" placeholder="min" x-model.number="novo.duracao_minutos" required>
+    <input type="number" step="0.01" placeholder="preço" x-model.number="novo.preco" required>
+    <input type="number" step="0.01" placeholder="% comissão" x-model.number="novo.comissao_percentual" required>
+    <button>Criar</button>
+  </form>
+</div>

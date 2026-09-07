@@ -1,0 +1,42 @@
+<%# src/views/admin/agendamentos.ejs %>
+<h1>Agendamentos</h1>
+<div x-data="painelAgendamentos()" x-init="init()">
+  <form class="filtros" @submit.prevent="buscar()">
+    <input type="date" x-model="filtro.data">
+    <select x-model="filtro.status">
+      <option value="">todos</option>
+      <option value="pendente">pendente</option>
+      <option value="confirmado">confirmado</option>
+      <option value="concluido">concluído</option>
+      <option value="cancelado">cancelado</option>
+    </select>
+    <input type="text" placeholder="cliente" x-model="filtro.cliente">
+    <button>Filtrar</button>
+  </form>
+
+  <table class="tabela">
+    <thead><tr><th>Data</th><th>Hora</th><th>Cliente</th><th>Serviço</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      <template x-for="a in itens" :key="a.id">
+        <tr :class="'status-' + a.status">
+          <td x-text="a.data_agendamento || a.data"></td>
+          <td x-text="a.horario_inicio || a.horario"></td>
+          <td x-text="a.cliente?.nome || a.cliente_nome"></td>
+          <td x-text="a.servico?.nome || a.servico_nome"></td>
+          <td x-text="a.status"></td>
+          <td>
+            <button @click="mudarStatus(a, 'confirmado')" x-show="a.status==='pendente'">Confirmar</button>
+            <button @click="mudarStatus(a, 'concluido')" x-show="a.status==='confirmado'">Concluir</button>
+            <button @click="cancelar(a)" x-show="a.status==='pendente' || a.status==='confirmado'">Cancelar</button>
+            <button @click="enviarWhatsapp(a)">Enviar confirmação</button>
+          </td>
+        </tr>
+      </template>
+    </tbody>
+  </table>
+  <div class="paginacao">
+    <button @click="pagina > 1 && (pagina--, buscar())">←</button>
+    <span x-text="'página ' + pagina"></span>
+    <button @click="pagina++, buscar()">→</button>
+  </div>
+</div>

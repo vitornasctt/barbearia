@@ -1,0 +1,42 @@
+<%# src/views/inicio.ejs %>
+<header class="topo">
+  <img src="/img/logo.svg" alt="" class="logo">
+  <h1><%= configuracao.nome_barbearia %></h1>
+  <a class="btn btn-primario" href="/agendar">Agendar horário</a>
+  <a class="btn" href="/minha-conta">Minha conta</a>
+</header>
+
+<main>
+  <section class="servicos">
+    <h2>Serviços</h2>
+    <ul class="servicos-lista">
+      <% servicos.forEach(function (s) { %>
+        <li class="servico-card">
+          <span class="servico-nome"><%= s.nome %></span>
+          <span class="servico-duracao"><%= s.duracao_minutos %> min</span>
+          <span class="servico-preco">R$ <%= Number(s.preco).toFixed(2) %></span>
+        </li>
+      <% }); %>
+    </ul>
+  </section>
+
+  <section class="expediente">
+    <h2>Horário de funcionamento</h2>
+    <table>
+      <% const dias = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado']; %>
+      <% configuracao.expediente.forEach(function (e) { %>
+        <tr>
+          <th><%= dias[e.dia_semana] %></th>
+          <td><%= e.aberto ? (e.abre.slice(0,5) + ' – ' + e.fecha.slice(0,5)) : 'Fechado' %></td>
+        </tr>
+      <% }); %>
+    </table>
+  </section>
+
+  <section class="local">
+    <h2>Onde estamos</h2>
+    <p><%= configuracao.endereco %></p>
+    <iframe class="mapa" src="<%= mapa.embedUrl %>" title="Mapa" loading="lazy"></iframe>
+    <a class="btn" target="_blank" rel="noopener" href="<%= mapa.comoChegarUrl %>">Como chegar</a>
+  </section>
+</main>

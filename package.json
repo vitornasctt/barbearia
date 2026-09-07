@@ -6,6 +6,8 @@
   "engines": { "node": ">=20" },
   "scripts": {
     "test": "node --env-file=.env --env-file=.env.test --test --test-concurrency=1",
+    "postinstall": "node scripts/sync-vendor.js",
+    "prestart": "node scripts/sync-vendor.js",
     "start": "node --env-file=.env src/server.js",
     "dev": "node --env-file=.env --watch src/server.js",
     "db:migrate": "node --env-file=.env scripts/migrate.js",
@@ -16,6 +18,7 @@
     "bcrypt": "^5.1.1",
     "connect-pg-simple": "^9.0.1",
     "cookie": "^0.6.0",
+    "ejs": "^3.1.10",
     "express": "^4.19.2",
     "express-rate-limit": "^7.4.0",
     "express-session": "^1.18.0",

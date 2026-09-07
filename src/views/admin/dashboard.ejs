@@ -1,0 +1,16 @@
+<%# src/views/admin/dashboard.ejs %>
+<h1>Dashboard</h1>
+<div x-data="painelDashboard()" x-init="init()">
+  <div class="cards">
+    <div class="card"><span>Cortes hoje</span><strong x-text="d.cortes_hoje ?? '–'"></strong></div>
+    <div class="card"><span>Agendamentos no mês</span><strong x-text="d.agendamentos_mes ?? '–'"></strong></div>
+    <div class="card"><span>Faturamento no mês</span><strong x-text="fmtBRL(d.faturamento_mes)"></strong></div>
+    <div class="card"><span>Comissão a receber</span><strong x-text="fmtBRL(d.comissao_mes)"></strong></div>
+  </div>
+  <h2>Próximos de hoje</h2>
+  <ul>
+    <template x-for="a in (d.proximos_hoje || [])" :key="a.id">
+      <li x-text="a.horario_inicio + ' — ' + (a.cliente_nome || a.cliente?.nome) + ' (' + (a.servico_nome || a.servico?.nome) + ')'"></li>
+    </template>
+  </ul>
+</div>

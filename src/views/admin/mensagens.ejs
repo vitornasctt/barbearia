@@ -1,0 +1,21 @@
+<%# src/views/admin/mensagens.ejs %>
+<h1>Mensagens</h1>
+<div x-data="painelMensagens()" x-init="init()">
+  <form class="filtros" @submit.prevent="carregar()">
+    <input type="number" placeholder="agendamento_id" x-model.number="agendamentoId">
+    <button>Filtrar</button>
+  </form>
+  <table class="tabela">
+    <thead><tr><th>Quando</th><th>Template</th><th>Status</th><th>Erro</th></tr></thead>
+    <tbody>
+      <template x-for="m in itens" :key="m.id">
+        <tr :class="'status-' + (m.status_envio || m.status)">
+          <td x-text="m.created_at || m.criado_em"></td>
+          <td x-text="m.template_chave || m.template"></td>
+          <td x-text="m.status_envio || m.status"></td>
+          <td x-text="m.erro || ''"></td>
+        </tr>
+      </template>
+    </tbody>
+  </table>
+</div>

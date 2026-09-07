@@ -1,0 +1,7 @@
+<%# src/views/partials/rodape.ejs %>
+<footer class="rodape">
+  <% if (typeof configuracao !== 'undefined' && configuracao) { %>
+    <p><%= configuracao.nome_barbearia %> — <%= configuracao.endereco %></p>
+  <% } %>
+  <p><a href="/privacidade">Política de privacidade</a> · © <%= anoAtual %></p>
+</footer>

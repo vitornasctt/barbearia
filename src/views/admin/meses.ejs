@@ -1,0 +1,21 @@
+<%# src/views/admin/meses.ejs %>
+<h1>Agenda / Meses</h1>
+<div x-data="painelMeses()" x-init="init()">
+  <div class="cal-nav">
+    <button @click="ano--; carregar()">←</button>
+    <strong x-text="ano"></strong>
+    <button @click="ano++; carregar()">→</button>
+  </div>
+  <div class="grade-meses">
+    <template x-for="m in meses" :key="m.mes">
+      <div class="mes-card">
+        <h3 x-text="nomeMes(m.mes)"></h3>
+        <span class="badge" :class="m.status === 'aberto' ? 'ok' : ''" x-text="m.status"></span>
+        <label>Limite/dia <input type="number" min="0" x-model.number="m.limite_por_dia"></label>
+        <button @click="salvar(m, m.status === 'aberto' ? 'fechado' : 'aberto')"
+                x-text="m.status === 'aberto' ? 'Fechar' : 'Abrir'"></button>
+        <button @click="salvar(m, m.status)">Salvar limite</button>
+      </div>
+    </template>
+  </div>
+</div>

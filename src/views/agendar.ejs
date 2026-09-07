@@ -1,0 +1,88 @@
+<%# src/views/agendar.ejs %>
+<a class="voltar" href="/">← Início</a>
+<h1>Agendar horário</h1>
+<div id="app-agendar" x-data="fluxoAgendamento()" x-init="init()">
+  <p class="erro-inline" x-show="erro" x-text="erro"></p>
+
+  <section x-show="passo === 1">
+    <h2>1. Escolha o serviço</h2>
+    <ul class="grade-servicos">
+      <template x-for="s in dados.servicos" :key="s.id">
+        <li><button class="servico-card" @click="escolherServico(s)">
+          <span x-text="s.nome"></span>
+          <span x-text="'R$ ' + Number(s.preco).toFixed(2)"></span>
+        </button></li>
+      </template>
+    </ul>
+  </section>
+
+  <section x-show="passo === 2">
+    <h2>2. Escolha o dia</h2>
+    <div class="cal-nav">
+      <button @click="mudarMes(-1)">←</button>
+      <span x-text="mes + '/' + ano"></span>
+      <button @click="mudarMes(1)">→</button>
+    </div>
+    <p x-show="mesFechado">Este mês ainda não está aberto para agendamento.</p>
+    <div class="calendario" x-show="!mesFechado">
+      <template x-for="(cel, i) in grade" :key="i">
+        <button class="cal-dia" :disabled="!cel || !cel.livre"
+                :class="cel && cel.livre ? 'livre' : ''"
+                @click="cel && cel.livre && escolherDia(cel.data)"
+                x-text="cel ? cel.dia : ''"></button>
+      </template>
+    </div>
+    <button class="voltar" @click="passo = 1">← serviço</button>
+  </section>
+
+  <section x-show="passo === 3">
+    <h2>3. Escolha o horário</h2>
+    <ul class="grade-horarios">
+      <template x-for="h in horarios" :key="h">
+        <li><button @click="escolherHorario(h)" x-text="h"></button></li>
+      </template>
+    </ul>
+    <p x-show="horarios.length === 0">Sem horários livres neste dia.</p>
+    <button class="voltar" @click="voltarParaDia()">← dia</button>
+  </section>
+
+  <section x-show="passo === 4">
+    <h2>4. Seus dados</h2>
+    <p class="contador">Reservado por <span x-text="contador"></span></p>
+    <label>Nome <input type="text" x-model="form.nome" required></label>
+    <label>Celular <input type="tel" x-model="form.celular" required></label>
+    <label><input type="checkbox" x-model="form.comSenha"> Quero criar uma senha</label>
+    <template x-if="form.comSenha">
+      <div>
+        <label>E-mail <input type="email" x-model="form.email"></label>
+        <label>Senha <input type="password" x-model="form.senha"></label>
+      </div>
+    </template>
+    <label><input type="checkbox" x-model="form.consentimento" required>
+      Li e aceito a <a href="/privacidade" target="_blank">política de privacidade</a></label>
+    <button class="btn-primario" @click="enviarCadastro()">Continuar</button>
+    <button class="voltar" @click="voltarParaHorarios()">← horário</button>
+  </section>
+
+  <section x-show="passo === 5">
+    <h2>5. Confirme</h2>
+    <p class="contador">Reservado por <span x-text="contador"></span></p>
+    <ul class="revisao">
+      <li x-text="'Serviço: ' + (servico && servico.nome)"></li>
+      <li x-text="'Data: ' + dia + ' às ' + horario"></li>
+      <li x-text="'Preço: R$ ' + (servico && Number(servico.preco).toFixed(2))"></li>
+    </ul>
+    <label>Observações <textarea x-model="form.observacoes"></textarea></label>
+    <button class="btn-primario" @click="confirmar()">Confirmar agendamento</button>
+  </section>
+
+  <section x-show="passo === 6">
+    <h2>Agendamento confirmado! ✅</h2>
+    <p>Você receberá a confirmação pelo WhatsApp.</p>
+    <a class="btn" href="/minha-conta">Ver meus agendamentos</a>
+  </section>
+</div>
+<script type="application/json" id="dados-pagina"><%- JSON.stringify(dadosPagina).replace(/</g, '\\u003c') %></script>
+<script src="/vendor/socket.io.min.js" defer></script>
+<script src="/js/agendar.js" type="module" defer></script>
+<script src="/vendor/alpine.min.js" defer></script>

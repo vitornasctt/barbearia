@@ -1,0 +1,13 @@
+<%# src/views/admin/templates.ejs %>
+<h1>Templates de mensagem</h1>
+<div x-data="painelTemplates()" x-init="init()">
+  <template x-for="t in itens" :key="t.chave">
+    <section class="template">
+      <h2 x-text="t.chave"></h2>
+      <p class="vars">Variáveis: <span x-text="(t.variaveis || []).join(', ')"></span></p>
+      <textarea rows="4" x-model="t.corpo"></textarea>
+      <p class="preview"><strong>Prévia:</strong> <span x-text="preview(t)"></span></p>
+      <button @click="salvar(t)">Salvar</button>
+    </section>
+  </template>
+</div>

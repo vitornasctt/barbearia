@@ -1,0 +1,31 @@
+<%# src/views/admin/clientes.ejs %>
+<h1>Clientes</h1>
+<div x-data="painelClientes()" x-init="init()">
+  <form class="filtros" @submit.prevent="buscar()">
+    <input placeholder="nome ou celular" x-model="busca">
+    <button>Buscar</button>
+  </form>
+  <ul class="lista-agendamentos">
+    <template x-for="c in itens" :key="c.id">
+      <li>
+        <button class="link" @click="abrir(c)" x-text="c.nome + ' — ' + c.celular"></button>
+      </li>
+    </template>
+  </ul>
+  <div class="modal" x-show="ficha" x-cloak>
+    <div class="modal-conteudo">
+      <h3 x-text="ficha && ficha.nome"></h3>
+      <p x-text="ficha && ficha.celular"></p>
+      <h4>Histórico</h4>
+      <ul>
+        <template x-for="a in (ficha ? (ficha.agendamentos || []) : [])" :key="a.id">
+          <li x-text="(a.data_agendamento || a.data) + ' ' + (a.horario_inicio || a.horario) + ' — ' + a.status"></li>
+        </template>
+      </ul>
+      <% if (usuario && usuario.role === 'admin') { %>
+      <button @click="anonimizar()">Anonimizar (LGPD)</button>
+      <% } %>
+      <button @click="ficha = null">Fechar</button>
+    </div>
+  </div>
+</div>
