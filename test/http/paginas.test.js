@@ -69,6 +69,7 @@ test('erro numa rota de página vira HTML 500 genérico (sem stack)', async () =
 
 test('throw numa rota de página real vira HTML 500 pelo buildApp (sem stack)', async () => {
   // Route handlers must be wrapped with rota() to properly handle async errors in buildApp
+  // mutação intencional do router singleton: node:test isola cada arquivo em processo próprio; rota única, registrada após as reais.
   paginas.get('/__erro_e2e__', rota(async () => { throw new Error('detalhe secreto e2e'); }));
   const res = await request(buildApp()).get('/__erro_e2e__');
   assert.equal(res.status, 500);

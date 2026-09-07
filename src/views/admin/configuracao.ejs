@@ -21,5 +21,7 @@
       </tr>
     </template>
   </table>
+  <% if (usuario && usuario.role === 'admin') { %>
   <button class="btn-primario" @click="salvar()">Salvar</button>
+  <% } %>
 </div>

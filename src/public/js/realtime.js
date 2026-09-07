@@ -1,3 +1,4 @@
+// src/public/js/realtime.js
 export function restanteDoLock(expiraEmISO, agoraMs = Date.now()) {
   const alvo = Date.parse(expiraEmISO);
   if (Number.isNaN(alvo)) return 0;

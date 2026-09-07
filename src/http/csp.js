@@ -1,3 +1,4 @@
+// src/http/csp.js
 export function diretivasCsp(config) {
   const prod = config.NODE_ENV === 'production';
   const d = {

@@ -22,7 +22,9 @@
           <li x-text="(a.data_agendamento || a.data) + ' ' + (a.horario_inicio || a.horario) + ' — ' + a.status"></li>
         </template>
       </ul>
+      <% if (usuario && usuario.role === 'admin') { %>
       <button @click="anonimizar()">Anonimizar (LGPD)</button>
+      <% } %>
       <button @click="ficha = null">Fechar</button>
     </div>
   </div>

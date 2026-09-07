@@ -1,3 +1,4 @@
+// src/public/js/comum.js
 export async function pedirJson(url, opcoes = {}) {
   const resp = await fetch(url, {
     credentials: 'same-origin',
