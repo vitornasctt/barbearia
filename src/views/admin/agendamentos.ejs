@@ -1,6 +1,58 @@
 <%# src/views/admin/agendamentos.ejs %>
 <h1>Agendamentos</h1>
 <div x-data="painelAgendamentos()" x-init="init()">
+  <details class="novo-agendamento">
+    <summary>Novo agendamento</summary>
+    <div class="form-grid">
+      <label>Cliente
+        <input type="text" x-model="novo.busca" @input.debounce.300ms="buscarCliente()" placeholder="nome ou celular">
+      </label>
+      <ul class="resultado-busca" x-show="novo.resultados.length">
+        <template x-for="c in novo.resultados" :key="c.id">
+          <li><button type="button" @click="selecionarCliente(c)" x-text="c.nome + ' — ' + c.celular"></button></li>
+        </template>
+      </ul>
+      <p x-show="novo.cliente_id">Selecionado: <strong x-text="novo.clienteNome"></strong>
+        <button type="button" @click="limparCliente()">trocar</button></p>
+      <label x-show="!novo.cliente_id"><input type="checkbox" x-model="novo.cadastrar"> cadastrar cliente novo</label>
+      <template x-if="novo.cadastrar && !novo.cliente_id">
+        <div>
+          <label>Nome <input type="text" x-model="novo.nome"></label>
+          <label>Celular <input type="tel" x-model="novo.celular"></label>
+        </div>
+      </template>
+
+      <label>Serviço
+        <select x-model.number="novo.servico_id" @change="carregarDiasNovo()">
+          <option value="">—</option>
+          <template x-for="s in novo.servicos" :key="s.id">
+            <option :value="s.id" x-text="s.nome"></option>
+          </template>
+        </select>
+      </label>
+
+      <div class="cal-nav" x-show="novo.servico_id">
+        <button type="button" @click="novo.mes--; carregarDiasNovo()">←</button>
+        <span x-text="novo.mes + '/' + novo.ano"></span>
+        <button type="button" @click="novo.mes++; carregarDiasNovo()">→</button>
+      </div>
+      <ul class="grade-horarios" x-show="novo.dias.length">
+        <template x-for="d in novo.dias" :key="d">
+          <li><button type="button" :class="novo.data === d ? 'ativa' : ''" @click="escolherDiaNovo(d)" x-text="d"></button></li>
+        </template>
+      </ul>
+      <ul class="grade-horarios" x-show="novo.data">
+        <template x-for="h in novo.horarios" :key="h">
+          <li><button type="button" :class="novo.horario === h ? 'ativa' : ''" @click="novo.horario = h" x-text="h"></button></li>
+        </template>
+      </ul>
+
+      <label>Observações <textarea x-model="novo.observacoes"></textarea></label>
+      <p class="erro-inline" x-show="novo.erro" x-text="novo.erro"></p>
+      <button type="button" class="btn-primario" :disabled="!podeCriar()" @click="criarAgendamento()">Criar</button>
+    </div>
+  </details>
+
   <form class="filtros" @submit.prevent="buscar()">
     <input type="date" x-model="filtro.data">
     <select x-model="filtro.status">
