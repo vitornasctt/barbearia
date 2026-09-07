@@ -44,7 +44,8 @@ paginas.get('/privacidade', rota(async (req, res) => {
 
 // eslint-disable-next-line no-unused-vars
 export function erroPagina(err, req, res, next) {
-  (req.log?.error ?? console.error)({ err }, 'erro em rota de página');
+  if (req.log) req.log.error({ err }, 'erro em rota de página');
+  else console.error('erro em rota de página', err);
   const status = Number.isInteger(err?.status) ? err.status : 500;
   res.status(status);
   renderPagina(res, 'erro', { titulo: 'Erro', status, configuracao: null });

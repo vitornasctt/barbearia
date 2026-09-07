@@ -43,6 +43,7 @@ export function errorHandler(err, req, res, next) {
     if (err.campos) corpo.campos = err.campos;
     return res.status(status).json(corpo);
   }
-  (req.log?.error ?? console.error)({ err }, 'erro não tratado na rota');
+  if (req.log) req.log.error({ err }, 'erro não tratado na rota');
+  else console.error(err);
   res.status(500).json({ erro: 'ERRO_INTERNO' });
 }
