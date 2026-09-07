@@ -35,3 +35,14 @@ test('GET /admin/login já logado redireciona para /admin', async () => {
   assert.equal(res.status, 302);
   assert.equal(res.headers.location, '/admin');
 });
+
+test('GET /admin/agendamentos: 302 sem sessão, 200 com sessão', async () => {
+  const anon = await request(buildApp()).get('/admin/agendamentos');
+  assert.equal(anon.status, 302);
+  const agente = await logarEquipe();
+  const res = await agente.get('/admin/agendamentos');
+  assert.equal(res.status, 200);
+  assert.match(res.text, /class="admin-sidebar"/);
+  assert.match(res.text, /a href="\/admin\/agendamentos" class="ativa"/);
+  assert.match(res.text, /src="\/js\/admin\/agendamentos\.js"/);
+});

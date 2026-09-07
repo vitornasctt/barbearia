@@ -13,3 +13,13 @@ adminPaginas.get('/login', (req, res) => {
 adminPaginas.get('/', paginaEquipe, (req, res) => {
   renderAdmin(res, 'dashboard', { telaAtiva: 'dashboard', titulo: 'Dashboard', modulo: 'dashboard' });
 });
+
+const telas = [
+  ['agendamentos', 'Agendamentos'],
+  // (meses, bloqueios, … added in later tasks)
+];
+for (const [slug, titulo] of telas) {
+  adminPaginas.get('/' + slug, paginaEquipe, (req, res) => {
+    renderAdmin(res, slug, { telaAtiva: slug, titulo, modulo: slug });
+  });
+}
