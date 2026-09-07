@@ -14,13 +14,13 @@
       <template x-for="l in linhas" :key="l.servico_id || l.servico">
         <tr>
           <td x-text="l.servico?.nome || l.servico_nome || l.servico"></td>
-          <td x-text="l.quantidade ?? l.qtde"></td>
+          <td x-text="l.qtd ?? l.quantidade ?? l.qtde"></td>
           <td x-text="fmt(l.faturamento)"></td>
           <td x-text="(l.comissao_percentual ?? l.percentual) + '%'"></td>
           <td x-text="fmt(l.comissao)"></td>
         </tr>
       </template>
     </tbody>
-    <tfoot><tr><th>Total</th><td></td><td x-text="fmt(total.faturamento)"></td><td></td><td x-text="fmt(total.comissao)"></td></tr></tfoot>
+    <tfoot><tr><th>Total</th><td x-text="total.qtd ?? ''"></td><td x-text="fmt(total.faturamento)"></td><td></td><td x-text="fmt(total.comissao)"></td></tr></tfoot>
   </table>
 </div>

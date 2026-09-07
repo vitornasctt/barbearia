@@ -5,7 +5,10 @@ export function previewTemplate(corpo, vars) {
   return String(corpo).replace(/\{\{\s*(\w+)\s*\}\}/g, (_, k) => (k in vars ? String(vars[k]) : `{{${k}}}`));
 }
 
-const EXEMPLO = { nome: 'Ana', servico: 'Corte', data: '10/09', hora: '14:00', barbearia: 'Barbearia' };
+const EXEMPLO = {
+  nome_cliente: 'Ana', nome_servico: 'Corte', data: '10/09',
+  horario: '14:00', endereco_barbearia: 'Rua Exemplo, 123', nome_barbearia: 'Barbearia',
+};
 
 function painelTemplates() {
   return {
@@ -16,8 +19,8 @@ function painelTemplates() {
     },
     preview(t) { return previewTemplate(t.corpo || '', EXEMPLO); },
     async salvar(t) {
-      const { ok } = await pedirJson('/api/admin/templates', {
-        method: 'PUT', body: JSON.stringify({ chave: t.chave, corpo: t.corpo }),
+      const { ok } = await pedirJson('/api/admin/templates/' + encodeURIComponent(t.chave), {
+        method: 'PUT', body: JSON.stringify({ titulo: t.titulo, corpo: t.corpo, ativo: t.ativo }),
       });
       toast(ok ? 'Template salvo.' : 'Falha ao salvar.', ok ? 'info' : 'erro');
     },
