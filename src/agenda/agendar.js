@@ -1,8 +1,8 @@
 // src/agenda/agendar.js
 import { withTransaction } from '../db/pool.js';
 import { adicionarMinutos } from '../lib/tempo.js';
-import { renderizarTemplate } from '../lib/template.js';
 import { calcularComissao } from '../services/comissao.js';
+import { enfileirarMensagem } from '../services/mensagens.js';
 import { verificarSlot } from './disponibilidade.js';
 
 function execDe(client) {
@@ -21,21 +21,19 @@ async function enfileirarConfirmacao(exec, agendamento) {
     [agendamento.id],
   );
   const d = dados.rows[0];
-  const tpl = await exec(`SELECT corpo FROM templates_mensagem WHERE chave='confirmacao' AND ativo`);
-  if (tpl.rowCount === 0) return;
-  const texto = renderizarTemplate(tpl.rows[0].corpo, {
-    nome_cliente: d.cliente_nome,
-    nome_servico: d.servico_nome,
-    data: agendamento.data_agendamento.toISOString().slice(0, 10),
-    horario: String(agendamento.horario_inicio).slice(0, 5),
-    endereco_barbearia: d.endereco ?? '',
-    nome_barbearia: d.nome_barbearia,
-  });
-  await exec(
-    `INSERT INTO mensagens_whatsapp (agendamento_id, template_chave, telefone_destino, mensagem_final, status_envio)
-     VALUES ($1, 'confirmacao', $2, $3, 'pendente')`,
-    [agendamento.id, d.celular, texto],
-  );
+  await enfileirarMensagem({
+    templateChave: 'confirmacao',
+    telefone: d.celular,
+    agendamentoId: agendamento.id,
+    vars: {
+      nome_cliente: d.cliente_nome,
+      nome_servico: d.servico_nome,
+      data: agendamento.data_agendamento.toISOString().slice(0, 10),
+      horario: String(agendamento.horario_inicio).slice(0, 5),
+      endereco_barbearia: d.endereco ?? '',
+      nome_barbearia: d.nome_barbearia,
+    },
+  }, exec);
 }
 
 // O lock de `horarios_lock` (5 min) é apenas consultivo: some slots em `horariosDisponiveis`,
