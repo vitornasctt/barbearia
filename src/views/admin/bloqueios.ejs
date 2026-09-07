@@ -1,0 +1,25 @@
+<%# src/views/admin/bloqueios.ejs %>
+<h1>Bloqueios</h1>
+<div x-data="painelBloqueios()" x-init="init()">
+  <form class="filtros" @submit.prevent="criar()">
+    <input type="date" x-model="novo.data" required>
+    <label><input type="checkbox" x-model="novo.diaInteiro"> dia inteiro</label>
+    <template x-if="!novo.diaInteiro">
+      <span>
+        <input type="time" x-model="novo.inicio">
+        <input type="time" x-model="novo.fim">
+      </span>
+    </template>
+    <input type="text" placeholder="motivo" x-model="novo.motivo">
+    <button>Adicionar</button>
+  </form>
+  <ul class="lista-agendamentos">
+    <template x-for="b in itens" :key="b.id">
+      <li>
+        <span x-text="b.data + (b.hora_inicio ? ` ${b.hora_inicio}–${b.hora_fim}` : ' (dia inteiro)')"></span>
+        <span x-text="b.motivo"></span>
+        <button @click="remover(b)">Remover</button>
+      </li>
+    </template>
+  </ul>
+</div>

@@ -16,7 +16,10 @@ adminPaginas.get('/', paginaEquipe, (req, res) => {
 
 const telas = [
   ['agendamentos', 'Agendamentos'],
-  // (meses, bloqueios, … added in later tasks)
+  ['meses', 'Agenda / Meses'],
+  ['bloqueios', 'Bloqueios'],
+  ['servicos', 'Serviços'],
+  ['clientes', 'Clientes'],
 ];
 for (const [slug, titulo] of telas) {
   adminPaginas.get('/' + slug, paginaEquipe, (req, res) => {

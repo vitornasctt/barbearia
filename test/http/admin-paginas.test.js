@@ -46,3 +46,13 @@ test('GET /admin/agendamentos: 302 sem sessão, 200 com sessão', async () => {
   assert.match(res.text, /a href="\/admin\/agendamentos" class="ativa"/);
   assert.match(res.text, /src="\/js\/admin\/agendamentos\.js"/);
 });
+
+for (const slug of ['meses', 'bloqueios', 'servicos', 'clientes']) {
+  test(`GET /admin/${slug} responde 200 com sessão e marca a aba ativa`, async () => {
+    const agente = await logarEquipe();
+    const res = await agente.get('/admin/' + slug);
+    assert.equal(res.status, 200);
+    assert.match(res.text, new RegExp(`a href="/admin/${slug}" class="ativa"`));
+    assert.match(res.text, new RegExp(`src="/js/admin/${slug}\\.js"`));
+  });
+}
