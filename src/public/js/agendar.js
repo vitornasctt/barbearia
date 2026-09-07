@@ -33,6 +33,7 @@ function fluxoAgendamento() {
     restante: 0,
     _tickTimer: null,
     _heartbeat: null,
+    _pollTimer: null,
     _rt: null,
     form: { nome: '', celular: '', comSenha: false, email: '', senha: '', consentimento: false },
     erro: '',
@@ -62,11 +63,14 @@ function fluxoAgendamento() {
     async escolherDia(data) {
       this.dia = data; this.passo = 3; this.horario = null;
       await this.carregarHorarios();
-      this._rt = conectarAgenda(data, {
-        horario_reservado: (p) => { if (p.data === this.dia) this.marcarOcupado(p.horario); },
-        horario_liberado: () => this.carregarHorarios(),
-        agenda_atualizada: () => this.carregarHorarios(),
-      });
+      if (this._rt) { this._rt.trocarData(data); }
+      else {
+        this._rt = conectarAgenda(data, {
+          horario_reservado: (p) => { if (p.data === this.dia) this.marcarOcupado(p.horario); },
+          horario_liberado: () => this.carregarHorarios(),
+          agenda_atualizada: () => this.carregarHorarios(),
+        });
+      }
       clearInterval(this._pollTimer);
       this._pollTimer = setInterval(() => this.carregarHorarios(), 30000);
     },
@@ -134,6 +138,8 @@ function fluxoAgendamento() {
         await pedirJson('/api/agenda/lock/liberar', { method: 'POST', body: payload });
       }
     },
+
+    voltarParaDia() { clearInterval(this._pollTimer); if (this._rt) { this._rt.sair(); this._rt = null; } this.passo = 2; },
 
     voltarParaHorarios() { this.liberar(); this.pararHeartbeat(); clearInterval(this._tickTimer); this.horario = null; this.passo = 3; this.carregarHorarios(); },
 

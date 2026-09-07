@@ -1,4 +1,6 @@
 // src/app.js
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import express from 'express';
 import helmet from 'helmet';
 import pinoHttp from 'pino-http';
@@ -19,6 +21,8 @@ import { webhooks } from './routes/webhooks.js';
 import { paginas, erroPagina } from './routes/paginas.js';
 import { adminPaginas } from './routes/adminPaginas.js';
 import { locaisDaRequisicao } from './http/render.js';
+
+const PUBLIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'public');
 
 // As tasks seguintes de rota editam SÓ esta função (inserem app.use antes do comentário-âncora).
 function montarRotas(app) {
@@ -41,7 +45,7 @@ export function buildApp({ io = null } = {}) {
   app.use(helmet({
     contentSecurityPolicy: { useDefaults: false, directives: diretivasCsp(config) },
   }));
-  app.use('/', express.static('src/public', { maxAge: '1h' }));
+  app.use('/', express.static(PUBLIC_DIR, { maxAge: '5m' }));
   app.use('/webhooks', (req, res, next) => { req.io = io; next(); }, webhooks);
   app.use(express.json({ limit: '100kb' }));
   app.use(criarSessaoMiddleware());

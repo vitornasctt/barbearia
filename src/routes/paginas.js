@@ -12,7 +12,7 @@ paginas.get('/', rota(async (req, res) => {
   const [configuracao, lista, mapa] = await Promise.all([
     configuracaoRepo.obter(), servicos.ativos(), dadosMapa(),
   ]);
-  res.set('Cache-Control', 'public, max-age=300');
+  res.set('Cache-Control', 'private, max-age=300');
   renderPagina(res, 'inicio', {
     titulo: configuracao.nome_barbearia, configuracao, servicos: lista, mapa,
   });

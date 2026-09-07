@@ -12,13 +12,9 @@ export function requireCliente(req, res, next) {
 
 export function requireEquipe(req, res, next) {
   const s = req.session;
-  const ok = s?.usuarioId && (s.role === 'admin' || s.role === 'barbeiro');
-  if (!ok) return next(new ErroHttp('NAO_AUTENTICADO'));
-  if (!s.equipeExpiraEm || Date.now() > s.equipeExpiraEm) {
-    s.destroy?.(() => {});
-    return next(new ErroHttp('NAO_AUTENTICADO'));
-  }
-  next();
+  if (equipeValida(s)) return next();
+  if (s?.usuarioId && s?.equipeExpiraEm && Date.now() > s.equipeExpiraEm) s.destroy?.(() => {});
+  return next(new ErroHttp('NAO_AUTENTICADO'));
 }
 
 export function requireAdmin(req, res, next) {

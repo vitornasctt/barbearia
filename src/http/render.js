@@ -33,6 +33,7 @@ export function renderAdmin(res, view, dados = {}) {
 }
 
 export function locaisDaRequisicao(req, res, next) {
+  // nonce disponível para <script> inline futuro — exige também 'nonce-...' em script-src (ver csp.js)
   res.locals.nonce = gerarNonce();
   res.locals.appUrl = config.APP_URL ?? '';
   res.locals.anoAtual = new Date().getFullYear();

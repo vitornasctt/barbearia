@@ -43,7 +43,7 @@
       </template>
     </ul>
     <p x-show="horarios.length === 0">Sem horários livres neste dia.</p>
-    <button class="voltar" @click="passo = 2">← dia</button>
+    <button class="voltar" @click="voltarParaDia()">← dia</button>
   </section>
 
   <section x-show="passo === 4">
@@ -82,7 +82,7 @@
     <a class="btn" href="/minha-conta">Ver meus agendamentos</a>
   </section>
 </div>
-<script type="application/json" id="dados-pagina" nonce="<%= nonce %>"><%- JSON.stringify(dadosPagina) %></script>
+<script type="application/json" id="dados-pagina"><%- JSON.stringify(dadosPagina).replace(/</g, '\\u003c') %></script>
 <script src="/vendor/socket.io.min.js" defer></script>
 <script src="/js/agendar.js" type="module" defer></script>
 <script src="/vendor/alpine.min.js" defer></script>

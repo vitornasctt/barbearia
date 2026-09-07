@@ -9,7 +9,7 @@ adminPaginas.use((req, res, next) => { res.set('Cache-Control', 'no-store'); nex
 
 adminPaginas.get('/login', (req, res) => {
   if (equipeValida(req.session)) return res.redirect(302, '/admin');
-  renderAdmin(res, 'login', { telaAtiva: null, semChrome: true, titulo: 'Entrar' });
+  renderAdmin(res, 'login', { telaAtiva: null, semChrome: true, titulo: 'Entrar', modulo: 'login' });
 });
 
 adminPaginas.get('/', paginaEquipe, (req, res) => {
