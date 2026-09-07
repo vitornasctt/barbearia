@@ -395,8 +395,9 @@ como hoje.
 ## 14. Códigos de erro — `src/http/erros.js` (Tarefa 11)
 
 `OTP_INVALIDO` → HTTP 400, mensagem pública "Código inválido ou expirado.".
-`MUITAS_TENTATIVAS` (429) já existe e cobre o rate-limit. `VALIDACAO` (422)
-já cobre `codigo` ausente com `senha` presente.
+`MUITAS_TENTATIVAS` (429) já existe e cobre o rate-limit. `VALIDACAO` (400
+neste projeto — ver `mapaErroHttp`) já cobre `codigo` ausente com `senha`
+presente, via `ErroHttp('VALIDACAO')` + `campos:[{caminho:'codigo', ...}]`.
 
 ---
 
