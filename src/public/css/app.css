@@ -86,11 +86,10 @@ img{max-width:100%;display:block}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto}}
 
 .eyebrow{
-  display:inline-flex;align-items:center;gap:.55rem;
+  display:inline-block;
   font-family:var(--fonte-titulo);font-size:.82rem;font-weight:600;
   letter-spacing:.28em;text-transform:uppercase;color:var(--ouro);margin-bottom:.8rem;
 }
-.eyebrow::before{content:"";width:1.6rem;height:1px;background:var(--ouro-linha)}
 .editorial{font-family:var(--fonte-editorial);font-style:italic;font-weight:600}
 
 .envoltorio{max-width:var(--largura);margin:0 auto;padding-inline:var(--gutter)}
