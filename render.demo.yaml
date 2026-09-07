@@ -1,0 +1,60 @@
+# Render Blueprint — instância de DEMONSTRAÇÃO (grátis)
+# https://render.com/docs/blueprint-spec
+#
+# Igual ao render.yaml de produção, mas:
+#   - name: barbearia-demo   (coexiste com o serviço de produção no mesmo workspace)
+#   - plan: free             (US$ 0, sem cartão)
+#
+# Trade-offs do free: dorme após ~15 min de inatividade, acorda em ~30s na
+# primeira visita, e o WebSocket cai quando hiberna (reconecta sozinho ao acordar).
+# Suficiente para mostrar o sistema a um comprador em potencial.
+#
+# Como usar:
+#   Render Dashboard -> Blueprints -> New Blueprint Instance -> repo
+#   vitornasctt/barbearia -> ele lista os DOIS blueprints; escolha este
+#   (render.demo.yaml) OU crie os dois. Preencha os valores `sync: false`.
+#
+# Banco: recomendado um projeto Supabase SEPARADO só para a demo, para os
+# agendamentos de teste não se misturarem com os de produção. (Se não ligar,
+# pode reusar o mesmo DATABASE_URL de produção.) O boot migra + semeia sozinho:
+# 3 serviços, expediente 09:00-19:30, templates e o admin. Depois é só abrir
+# /admin -> Agenda/Meses -> abrir um mês para liberar horários.
+#
+# Instância única (Socket.io e cache em memória) — não escale.
+
+services:
+  - type: web
+    name: barbearia-demo
+    runtime: node
+    plan: free
+    region: virginia
+    branch: main
+    numInstances: 1
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /healthz
+    autoDeploy: true          # acompanha a main; o CI do GitHub roda antes
+    envVars:
+      - key: NODE_ENV
+        value: production      # mesma config da produção, para a demo ser fiel
+      - key: TZ
+        value: America/Sao_Paulo
+      - key: LOG_LEVEL
+        value: info
+      - key: COOKIE_SECURE
+        value: "1"             # Render free também tem HTTPS
+      - key: SESSION_SECRET
+        generateValue: true
+      # DATABASE_URL: de preferência um projeto Supabase novo só p/ demo
+      # (Session Pooler, porta 5432, senha percent-encoded).
+      - key: DATABASE_URL
+        sync: false
+      # APP_URL: preencha após o 1º deploy (ex. https://barbearia-demo.onrender.com).
+      - key: APP_URL
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_SENHA
+        sync: false
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false

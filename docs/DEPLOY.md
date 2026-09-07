@@ -46,6 +46,10 @@ Ou seja: **não existe passo manual de `db:migrate` no deploy**. Basta `npm ci` 
 > `SESSION_SECRET` é gerado automaticamente. Preencha `APP_URL` depois do primeiro
 > deploy, com a URL pública. Os passos manuais abaixo continuam válidos como
 > referência do que o blueprint faz.
+>
+> Há também um **`render.demo.yaml`** (serviço `barbearia-demo`, `plan: free`) para
+> uma instância de demonstração descartável — mesmo app, sem custo. Use um projeto
+> Supabase separado no `DATABASE_URL` dela.
 
 ### 1. Banco de dados
 
