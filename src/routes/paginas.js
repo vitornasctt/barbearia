@@ -16,3 +16,36 @@ paginas.get('/', rota(async (req, res) => {
     titulo: configuracao.nome_barbearia, configuracao, servicos: lista, mapa,
   });
 }));
+
+paginas.get('/agendar', rota(async (req, res) => {
+  const [configuracao, lista] = await Promise.all([
+    configuracaoRepo.obter(), servicos.ativos(),
+  ]);
+  renderPagina(res, 'agendar', {
+    titulo: 'Agendar — ' + configuracao.nome_barbearia,
+    configuracao,
+    dadosPagina: {
+      servicos: lista,
+      antecedenciaHoras: configuracao.antecedencia_min_horas,
+      intervaloMin: configuracao.intervalo_minutos,
+    },
+  });
+}));
+
+paginas.get('/minha-conta', rota(async (req, res) => {
+  const configuracao = await configuracaoRepo.obter();
+  renderPagina(res, 'minha-conta', { titulo: 'Minha conta', configuracao, dadosPagina: {} });
+}));
+
+paginas.get('/privacidade', rota(async (req, res) => {
+  const configuracao = await configuracaoRepo.obter();
+  renderPagina(res, 'privacidade', { titulo: 'Privacidade', configuracao });
+}));
+
+// eslint-disable-next-line no-unused-vars
+export function erroPagina(err, req, res, next) {
+  (req.log?.error ?? console.error)({ err }, 'erro em rota de página');
+  const status = Number.isInteger(err?.status) ? err.status : 500;
+  res.status(status);
+  renderPagina(res, 'erro', { titulo: 'Erro', status, configuracao: null });
+}

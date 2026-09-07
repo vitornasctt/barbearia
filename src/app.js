@@ -16,7 +16,7 @@ import { requireCliente } from './auth/middleware.js';
 import { adminApi } from './routes/adminApi.js';
 import { requireEquipe } from './auth/middleware.js';
 import { webhooks } from './routes/webhooks.js';
-import { paginas } from './routes/paginas.js';
+import { paginas, erroPagina } from './routes/paginas.js';
 import { locaisDaRequisicao } from './http/render.js';
 
 // As tasks seguintes de rota editam SÓ esta função (inserem app.use antes do comentário-âncora).
@@ -49,6 +49,10 @@ export function buildApp({ io = null } = {}) {
   app.use('/', paginas);
   montarRotas(app);
 
+  app.use((err, req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/webhooks')) return next(err);
+    return erroPagina(err, req, res, next);
+  });
   app.use((req, res) => res.status(404).json({ erro: 'NAO_ENCONTRADO' }));
   app.use(errorHandler);
   return app;

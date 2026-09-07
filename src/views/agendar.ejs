@@ -1,0 +1,8 @@
+<%# src/views/agendar.ejs %>
+<a class="voltar" href="/">← Início</a>
+<h1>Agendar horário</h1>
+<div id="app-agendar" x-data="fluxoAgendamento()" x-init="init()"></div>
+<script type="application/json" id="dados-pagina" nonce="<%= nonce %>"><%- JSON.stringify(dadosPagina) %></script>
+<script src="/vendor/socket.io.min.js" defer></script>
+<script src="/js/agendar.js" type="module" defer></script>
+<script src="/vendor/alpine.min.js" defer></script>
