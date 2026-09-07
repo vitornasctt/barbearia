@@ -17,6 +17,7 @@ import { adminApi } from './routes/adminApi.js';
 import { requireEquipe } from './auth/middleware.js';
 import { webhooks } from './routes/webhooks.js';
 import { paginas, erroPagina } from './routes/paginas.js';
+import { adminPaginas } from './routes/adminPaginas.js';
 import { locaisDaRequisicao } from './http/render.js';
 
 // As tasks seguintes de rota editam SÓ esta função (inserem app.use antes do comentário-âncora).
@@ -48,6 +49,7 @@ export function buildApp({ io = null } = {}) {
 
   app.use('/', paginas);
   montarRotas(app);
+  app.use('/admin', adminPaginas);
 
   app.use((err, req, res, next) => {
     if (req.path.startsWith('/api') || req.path.startsWith('/webhooks')) return next(err);

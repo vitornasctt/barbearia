@@ -21,6 +21,17 @@ export function renderPagina(res, view, dados = {}) {
   });
 }
 
+export function renderAdmin(res, view, dados = {}) {
+  const ctx = { ...res.locals, ...dados };
+  ejs.renderFile(path.join(VIEWS, 'admin', `${view}.ejs`), ctx, {}, (err, corpo) => {
+    if (err) return res.req.next(err);
+    ejs.renderFile(path.join(VIEWS, 'admin', 'layout.ejs'), { ...ctx, corpo }, {}, (err2, html) => {
+      if (err2) return res.req.next(err2);
+      res.type('html').send(html);
+    });
+  });
+}
+
 export function locaisDaRequisicao(req, res, next) {
   res.locals.nonce = gerarNonce();
   res.locals.appUrl = config.APP_URL ?? '';

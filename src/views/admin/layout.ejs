@@ -1,0 +1,42 @@
+<%# src/views/admin/layout.ejs %>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= (typeof titulo !== 'undefined' ? titulo : 'Admin') %> — Barbearia</title>
+  <link rel="icon" href="/img/favicon.svg">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body class="admin">
+  <% if (!(typeof semChrome !== 'undefined' && semChrome)) { %>
+    <nav class="admin-sidebar">
+      <% const itens = [
+        ['dashboard','/admin','Dashboard'],
+        ['agendamentos','/admin/agendamentos','Agendamentos'],
+        ['meses','/admin/meses','Agenda / Meses'],
+        ['bloqueios','/admin/bloqueios','Bloqueios'],
+        ['servicos','/admin/servicos','Serviços'],
+        ['clientes','/admin/clientes','Clientes'],
+        ['comissoes','/admin/comissoes','Comissões'],
+        ['configuracao','/admin/configuracao','Configuração'],
+        ['templates','/admin/templates','Templates'],
+        ['mensagens','/admin/mensagens','Mensagens'],
+      ]; %>
+      <% itens.forEach(function (it) { %>
+        <a href="<%= it[1] %>" class="<%= telaAtiva === it[0] ? 'ativa' : '' %>"><%= it[2] %></a>
+      <% }); %>
+      <button id="admin-sair" type="button">Sair</button>
+    </nav>
+  <% } %>
+  <main class="admin-conteudo"><%- corpo %></main>
+  <script src="/vendor/socket.io.min.js" defer></script>
+  <% if (!(typeof semChrome !== 'undefined' && semChrome)) { %>
+    <script src="/js/admin/comum.js" type="module" defer></script>
+  <% } %>
+  <% if (typeof modulo !== 'undefined' && modulo) { %>
+    <script src="/js/admin/<%= modulo %>.js" type="module" defer></script>
+  <% } %>
+  <script src="/vendor/alpine.min.js" defer></script>
+</body>
+</html>
