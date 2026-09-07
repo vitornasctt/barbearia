@@ -2,6 +2,8 @@ import { test, before, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
 import { buildApp } from '../../src/app.js';
+import { paginas } from '../../src/routes/paginas.js';
+import { rota } from '../../src/http/async.js';
 import { prepararBanco } from '../helpers/db.js';
 
 before(prepararBanco);
@@ -54,5 +56,16 @@ test('erro numa rota de página vira HTML 500 genérico (sem stack)', async () =
   const res = await request(app).get('/estoura');
   assert.equal(res.status, 500);
   assert.match(res.headers['content-type'], /text\/html/);
+  assert.match(res.text, /Algo deu errado/);
   assert.doesNotMatch(res.text, /detalhe secreto/);
+});
+
+test('throw numa rota de página real vira HTML 500 pelo buildApp (sem stack)', async () => {
+  // Route handlers must be wrapped with rota() to properly handle async errors in buildApp
+  paginas.get('/__erro_e2e__', rota(async () => { throw new Error('detalhe secreto e2e'); }));
+  const res = await request(buildApp()).get('/__erro_e2e__');
+  assert.equal(res.status, 500);
+  assert.match(res.headers['content-type'], /text\/html/);
+  assert.match(res.text, /Algo deu errado/);
+  assert.doesNotMatch(res.text, /detalhe secreto e2e/);
 });
