@@ -1,1 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120"><rect width="200" height="120" fill="#262b33"/><text x="100" y="64" fill="#9aa4b2" font-family="sans-serif" font-size="14" text-anchor="middle">galeria 2</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-label="Ferramentas de barbearia">
+  <defs>
+    <linearGradient id="g2bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#171b1a"/><stop offset="1" stop-color="#0c0e0d"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="300" fill="url(#g2bg)"/>
+  <line x1="40" y1="214" x2="360" y2="214" stroke="#3b423f" stroke-width="2"/>
+  <g stroke="#c9a45c" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- tesoura -->
+    <circle cx="86" cy="176" r="12"/><circle cx="86" cy="140" r="12"/>
+    <path d="M95 168l70-70M95 148l70 66"/>
+    <path d="M165 98l14-14M165 214l14 12"/>
+    <!-- pente -->
+    <path d="M210 120h130v18H210z" fill="#1b201e"/>
+    <path d="M216 138v20M228 138v20M240 138v20M252 138v20M264 138v20M276 138v20M288 138v20M300 138v20M312 138v20M324 138v20M336 138v20"/>
+    <!-- maquina -->
+    <rect x="150" y="170" width="120" height="44" rx="10" fill="#1b201e"/>
+    <path d="M150 184h-16v16h16M270 176v32"/>
+    <path d="M258 170v-10h-96v10"/>
+    <path d="M168 160v-8M186 160v-8M204 160v-8M222 160v-8M240 160v-8"/>
+    <!-- navalha -->
+    <path d="M300 196c14-14 34-22 52-22-2 16-12 30-26 38l-30 6z" fill="#151918"/>
+    <path d="M296 214l-10 10"/>
+  </g>
+</svg>

@@ -1,1 +1,32 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120"><rect width="200" height="120" fill="#262b33"/><text x="100" y="64" fill="#9aa4b2" font-family="sans-serif" font-size="14" text-anchor="middle">galeria 4</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-label="Bancada com espelho e produtos">
+  <defs>
+    <linearGradient id="g4bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#171b1a"/><stop offset="1" stop-color="#0c0e0d"/>
+    </linearGradient>
+    <radialGradient id="g4mirror" cx="0.5" cy="0.4" r="0.7">
+      <stop offset="0" stop-color="#2a302e"/><stop offset="1" stop-color="#0c0e0d"/>
+    </radialGradient>
+  </defs>
+  <rect width="400" height="300" fill="url(#g4bg)"/>
+  <!-- espelho -->
+  <rect x="120" y="40" width="160" height="150" rx="80" fill="url(#g4mirror)" stroke="#c9a45c" stroke-width="2.6"/>
+  <path d="M150 70c20 20 30 60 20 95" stroke="#c9a45c" stroke-width="1.4" fill="none" opacity="0.35"/>
+  <!-- bancada -->
+  <path d="M60 210h280v10H60z" fill="#1b201e" stroke="#c9a45c" stroke-width="2.4"/>
+  <line x1="60" y1="234" x2="340" y2="234" stroke="#3b423f" stroke-width="2"/>
+  <g stroke="#c9a45c" stroke-width="2.2" fill="#151918" stroke-linecap="round" stroke-linejoin="round">
+    <!-- frascos -->
+    <path d="M96 210v-40a8 8 0 0 1 8-8h10a8 8 0 0 1 8 8v40"/>
+    <path d="M102 150h14v12h-14z"/>
+    <path d="M150 210v-54h22v54"/>
+    <path d="M154 156v-10h14v10"/>
+    <path d="M300 210v-32a10 10 0 0 0-10-10h-8a10 10 0 0 0-10 10v32"/>
+    <path d="M285 168l-4-12h14l-4 12"/>
+  </g>
+  <!-- pincel de barbear -->
+  <g stroke="#c9a45c" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M222 210v-24"/>
+    <path d="M214 186h16l-3 -20h-10z" fill="#1b201e"/>
+    <path d="M212 166c2-14 6-22 10-22s8 8 10 22z" fill="#3b423f"/>
+  </g>
+</svg>
