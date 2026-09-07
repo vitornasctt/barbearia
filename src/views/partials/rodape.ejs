@@ -1,7 +1,12 @@
 <%# src/views/partials/rodape.ejs %>
 <footer class="rodape">
   <% if (typeof configuracao !== 'undefined' && configuracao) { %>
-    <p><%= configuracao.nome_barbearia %> — <%= configuracao.endereco %></p>
+    <p><strong><%= configuracao.nome_barbearia %></strong></p>
+    <p><%= configuracao.endereco %></p>
+    <% if (configuracao.telefone_whatsapp) { %>
+      <p>WhatsApp <%= configuracao.telefone_whatsapp %></p>
+    <% } %>
   <% } %>
-  <p><a href="/privacidade">Política de privacidade</a> · © <%= anoAtual %></p>
+  <p style="margin-top:1rem"><a href="/agendar">Agendar</a> · <a href="/minha-conta">Minha conta</a> · <a href="/privacidade">Privacidade</a></p>
+  <p>© <%= anoAtual %> <%= (typeof configuracao !== 'undefined' && configuracao) ? configuracao.nome_barbearia : 'Barbearia' %></p>
 </footer>

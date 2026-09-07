@@ -8,6 +8,13 @@
 </div>
 <div class="pagina">
 <div id="app-agendar" x-data="fluxoAgendamento()" x-init="init()">
+  <div class="passos" x-show="passo <= 5" aria-hidden="true">
+    <span :class="passo > 1 ? 'feito' : (passo === 1 ? 'atual' : '')"></span>
+    <span :class="passo > 2 ? 'feito' : (passo === 2 ? 'atual' : '')"></span>
+    <span :class="passo > 3 ? 'feito' : (passo === 3 ? 'atual' : '')"></span>
+    <span :class="passo > 4 ? 'feito' : (passo === 4 ? 'atual' : '')"></span>
+    <span :class="passo > 5 ? 'feito' : (passo === 5 ? 'atual' : '')"></span>
+  </div>
   <p class="erro-inline" x-show="erro" x-text="erro"></p>
 
   <section x-show="passo === 1">

@@ -8,18 +8,28 @@
 </header>
 
 <section class="hero">
+  <span class="eyebrow">Agendamento online</span>
   <h1><%= configuracao.nome_barbearia %></h1>
-  <p class="hero-sub">Agende seu horário online — escolha o serviço, o dia e a hora.
-    A confirmação é na hora, e você acompanha tudo pela sua conta.</p>
-  <a class="btn btn-primario btn-lg" href="/agendar">Agendar horário</a>
+  <p class="hero-sub">Reserve seu horário em menos de um minuto. Escolha o serviço,
+    o dia e a hora — a confirmação é imediata e você acompanha tudo pela sua conta.</p>
+  <div class="btn-row">
+    <a class="btn btn-primario btn-lg" href="/agendar">Agendar horário</a>
+    <a class="btn btn-ghost btn-lg" href="#servicos">Ver serviços</a>
+  </div>
+  <span class="hero-nota">Sem cadastro complicado — só nome e celular</span>
 </section>
 
 <main class="conteudo">
   <section class="secao servicos" id="servicos">
+    <span class="eyebrow">O que fazemos</span>
     <h2>Serviços</h2>
     <ul class="servicos-lista">
       <% servicos.forEach(function (s) { %>
         <li class="servico-card">
+          <svg class="servico-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
+            <path d="M8.1 8.1 21 21M8.1 15.9 21 3M9 12l3 1.5"/>
+          </svg>
           <span class="servico-nome"><%= s.nome %></span>
           <span class="servico-meta"><%= s.duracao_minutos %> min</span>
           <span class="servico-preco">R$ <%= Number(s.preco).toFixed(2) %></span>
@@ -29,6 +39,7 @@
   </section>
 
   <section class="secao expediente" id="expediente">
+    <span class="eyebrow">Quando abrimos</span>
     <h2>Horário de funcionamento</h2>
     <table>
       <% const dias = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado']; %>
@@ -42,9 +53,10 @@
   </section>
 
   <section class="secao local" id="local">
+    <span class="eyebrow">Como chegar</span>
     <h2>Onde estamos</h2>
     <p class="endereco"><%= configuracao.endereco %></p>
     <iframe class="mapa" src="<%= mapa.embedUrl %>" title="Mapa" loading="lazy"></iframe>
-    <a class="btn btn-ghost" target="_blank" rel="noopener" href="<%= mapa.comoChegarUrl %>">Como chegar</a>
+    <a class="btn btn-ghost" target="_blank" rel="noopener" href="<%= mapa.comoChegarUrl %>">Abrir no mapa</a>
   </section>
 </main>
