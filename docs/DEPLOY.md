@@ -38,6 +38,15 @@ Ou seja: **não existe passo manual de `db:migrate` no deploy**. Basta `npm ci` 
 
 ## Render (caminho principal)
 
+> **Atalho — Blueprint:** o repo tem um `render.yaml` na raiz. Em vez dos passos
+> manuais abaixo, use **Render Dashboard → New → Blueprint**, conecte o repo, e o
+> Render cria o Web Service já configurado (build/start, health check, env vars).
+> Ele só vai pedir os valores marcados como `sync: false` no `render.yaml`
+> (`DATABASE_URL`, `APP_URL`, `ADMIN_EMAIL`, `ADMIN_SENHA`, `GOOGLE_MAPS_API_KEY`);
+> `SESSION_SECRET` é gerado automaticamente. Preencha `APP_URL` depois do primeiro
+> deploy, com a URL pública. Os passos manuais abaixo continuam válidos como
+> referência do que o blueprint faz.
+
 ### 1. Banco de dados
 
 Duas opções:
