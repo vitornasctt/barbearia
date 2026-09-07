@@ -45,6 +45,8 @@ export function criarServidor() {
 
 const ehEntrypoint = process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href;
 if (ehEntrypoint) {
+  const { inicializar } = await import('./bootstrap.js');
+  await inicializar({ semear: true });
   const { server, parar } = criarServidor();
   server.listen(config.PORT, () => console.log('barbearia ouvindo em', config.PORT));
   for (const sig of ['SIGTERM', 'SIGINT']) {

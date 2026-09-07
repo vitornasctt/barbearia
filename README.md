@@ -1,85 +1,89 @@
-# Barbearia — Backend (P1: Fundação + Motor de Agenda)
+# Barbearia — Full-Stack Barbershop Booking System
 
-## Pré-requisitos
-- Node 20 ou superior
-- Um projeto **Supabase** (PostgreSQL). Não usa Docker nem Postgres local.
+A complete real-time barbershop booking platform with public online scheduling, live availability, admin panel, and WhatsApp integration. Built with Node.js (ESM), Express, Socket.io, EJS, Alpine.js, and PostgreSQL.
 
-## Setup
+## Stack
+
+- **Runtime:** Node ≥ 22 (ESM); repo fixa 24 no `.nvmrc`, `engines.node` ≥ 22
+- **Server:** Express 4 + Socket.io (same process, no clustering)
+- **Frontend:** EJS (server-rendered) + Alpine.js (no build step), CSS with dark theme
+- **Database:** PostgreSQL ≥ 15 (Supabase Session Pooler in dev)
+- **Testing:** `node:test` (isolated schemas)
+- **Cache:** in-memory; `node-cron` internal (1-min interval for lock cleanup + message queue)
+- **No Redis, Docker, or external job queue**
+
+## The 4 Phases
+
+- **[P1 — Fundação + Motor de Agenda](docs/superpowers/specs/2026-09-05-barbearia-nucleo-design.md) ([Plan](docs/superpowers/plans/2026-09-05-p1-fundacao-motor-agenda.md))**  
+  PostgreSQL schema, scheduling engine (slots, availability, temporary locks, race-condition-safe transactions), commission service.
+
+- **[P2 — API + Tempo Real + Auth](docs/superpowers/specs/2026-09-06-p2-api-tempo-real-auth-design.md) ([Plan](docs/superpowers/plans/2026-09-06-p2-api-tempo-real-auth.md))**  
+  REST API (`/api/*`), real-time Socket.io (rooms + 6 events), session in Postgres, rate limiting, message worker, WhatsApp webhook (stub without credentials).
+
+- **[P3 — Frontend](docs/superpowers/specs/2026-09-07-p3-frontend-design.md) ([Plan](docs/superpowers/plans/2026-09-07-p3-frontend.md))**  
+  Public pages (landing, 5-step booking flow, customer account), admin panel (10 live screens), Content Security Policy, dark CSS, Alpine islands.
+
+- **[P4 — Deploy + Docs + CI](docs/superpowers/specs/2026-09-07-p4-deploy-docs-ci-design.md) ([Plan](docs/superpowers/plans/2026-09-07-p4-deploy-docs-ci.md))**  
+  Auto-migrating boot (via `src/bootstrap.js`), migration 004 (`NULLS NOT DISTINCT`), admin "new appointment" screen, comprehensive docs (`DEPLOY.md`, `API.md`, `whatsapp-templates.md`), CI with isolated ephemeral Postgres.
+
+## Prerequisites
+
+- **Node** ≥ 22 (repo fixa 24 no `.nvmrc`)
+- **PostgreSQL** ≥ 15
+- **Supabase project** (or self-hosted Postgres ≥ 15 with SSL)
+
+## Setup Local
+
 ```bash
-cp .env.example .env          # preencha DATABASE_URL (Session Pooler do Supabase) e SESSION_SECRET
+# Copy and fill environment files
+cp .env.example .env                # Fill DATABASE_URL (Supabase Session Pooler) and SESSION_SECRET
 cp .env.test.example .env.test
-npm install
-npm run db:reset              # cria schema public + tabelas + seed (desenvolvimento)
+
+# Install dependencies
+npm ci
+
+# Initialize database (migrates + truncates + seeds schema public)
+npm run db:reset
+
+# Start dev server
+npm run dev                         # http://localhost:3000
 ```
 
-`DATABASE_URL` usa o **Session Pooler** do Supabase (porta 5432). Se a senha do
-banco tiver caractere especial (`& + $ ? ...`), ela precisa estar
-**percent-encoded** dentro da URL.
+**Admin login:** `/admin` uses `ADMIN_EMAIL` and `ADMIN_SENHA` from `.env`.
 
-## Isolamento dev × teste
-Mesmo banco, schemas diferentes: desenvolvimento no schema `public`, testes no
-schema `test` (`TEST_SCHEMA`). `npm test` roda com `NODE_ENV=test` e nunca toca
-os dados de `public`.
+**Database URL:** If your Supabase password contains special characters (`&`, `+`, `$`, `?`, etc.), they must be **percent-encoded** in the `DATABASE_URL`.
 
-## Comandos
-| Comando | O quê |
+## Commands
+
+| Command | Purpose |
 |---|---|
-| `npm test` | Suíte completa (`node:test`), no schema `test` |
-| `npm run db:migrate` | Aplica migrations pendentes (schema `public`) |
-| `npm run db:seed` | Aplica o seed idempotente (schema `public`) |
-| `npm run db:reset` | Migra + trunca + semeia (schema `public`) |
+| `npm test` | Full test suite (`node:test`), schema `test` |
+| `npm run dev` | Dev server with `--watch` |
+| `npm start` | Prod: **auto-migrates + seeds + starts** (via `src/bootstrap.js`) |
+| `npm run db:migrate` | Apply pending migrations (schema `public`) |
+| `npm run db:seed` | Run idempotent seed (schema `public`) |
+| `npm run db:reset` | Migrate + truncate + seed (schema `public`) |
 
-## O que existe no P1
-- Camada de banco (`src/db/`): pool, migrations idempotentes, seed.
-- Motor de agenda (`src/agenda/`): `slots`, `disponibilidade` (+ `verificarSlot`),
-  `locks`, `agendar` (`confirmarAgendamento`, `cancelarAgendamento`,
-  `remarcarAgendamento`), `cache`.
-- Utilidades (`src/lib/`): `tempo`, `template`. Serviço `comissao`.
+## Test Isolation
 
-## P2 — servidor HTTP + tempo real
+- **Dev:** schema `public`
+- **Tests:** schema `test` (same remote Supabase database)
 
-```bash
-npm start            # sobe Express + Socket.io + cron na porta de PORT (.env)
-npm run dev          # idem com --watch
-```
+**Known limitation:** Dev test suite shares a single remote `test` schema — do **not** run `npm test` concurrently. CI (`.github/workflows/ci.yml`) uses an ephemeral `postgres:17` container per run and has no concurrency limit.
 
-### Rotas (resumo)
-- **Pública** `/api/agenda/*`: `servicos`, `dias`, `horarios`, `lock`/`renovar`/`liberar`,
-  `cadastro`, `confirmar`. `/api/auth/*`: `admin/login`, `cliente/login`, `logout`.
-  `/healthz`. `/webhooks/whatsapp`.
-- **Cliente** `/api/cliente/*` (sessão de cliente): `me`, `agendamentos`, `:id/cancelar`, `:id/remarcar`.
-- **Admin** `/api/admin/*` (sessão de equipe; algumas exigem `role=admin`):
-  `dashboard`, `agendamentos` (listar / `:id/status` / criar), `disponibilidade`,
-  `bloqueios`, `servicos`, `clientes` (+ `:id/anonimizar`), `comissoes`,
-  `configuracao`, `templates`, `mensagens` (+ `/enviar`).
+## Deployment & Documentation
 
-### Tempo real (Socket.io, mesmo servidor)
-Salas `agenda:<YYYY-MM-DD>` (cliente emite `entrar_agenda`/`sair_agenda`) e `admin`
-(automático para sessão de equipe). Eventos: `horario_reservado`,
-`horario_liberado`, `agenda_atualizada`, `novo_agendamento`,
-`agendamento_atualizado`, `dashboard_tick`.
+- **[Deployment Guide](docs/DEPLOY.md):** Render + VPS, environment, migrations, hardening
+- **[API Reference](docs/API.md):** REST endpoints, Socket.io events, authentication
+- **[WhatsApp Templates](docs/whatsapp-templates.md):** Template catalog + webhook flow
 
-### Sessão e segurança
-Sessão em Postgres (`connect-pg-simple`, schema-aware). Cookie `httpOnly` +
-`sameSite=lax` + `secure` em produção. `exigirOrigemConfiavel` em toda rota
-mutadora. Rate limit no login (5/15min) e no envio de mensagens (30/5min).
-`logs_acesso` em toda tentativa de login.
+## Architecture
 
-### Integrações (stub no P2)
-- **WhatsApp:** sem `WHATSAPP_TOKEN`/`WHATSAPP_PHONE_NUMBER_ID` → driver `simulado`
-  (grava `status_envio='simulado'`). Com ambos → driver `meta` (Cloud API).
-  Webhook: `GET /webhooks/whatsapp` faz o handshake se `WHATSAPP_VERIFY_TOKEN`
-  estiver setado; `POST` valida `X-Hub-Signature-256` se `WHATSAPP_APP_SECRET`.
-- **SMS/OTP:** `src/services/sms.js` pronto em modo simulado (código `000000`);
-  não há rota de OTP no P2.
-- **Mapa:** `src/services/mapa.js` — Google Embed com `GOOGLE_MAPS_API_KEY`,
-  senão OpenStreetMap.
-
-### Novas variáveis (.env)
-`ORIGENS_PERMITIDAS` (CSV), `COOKIE_SECURE` (`1` força secure), `WHATSAPP_APP_SECRET`,
-`LOG_LEVEL`. `SESSION_SECRET` deve ter ≥32 chars em produção.
-
-## Fora do P2 (P3/P4)
-Frontend (EJS/CSS/Alpine), páginas `/`, `/agendar`, `/minha-conta`, `/privacidade`;
-`DEPLOY.md` + Render + CI; CSRF por token; export PDF/Excel; OTP no cadastro;
-driver real da WhatsApp Cloud API exercitado com credencial.
+Single-process Express server with:
+- **Server-rendered EJS** templates + **Alpine.js islands** (no frontend build)
+- **Socket.io** for real-time updates (appointment reserved/freed, dashboard tick)
+- **In-memory cache** with automatic cleanup via `node-cron`
+- **PostgreSQL sessions** (`connect-pg-simple`, schema-aware, `httpOnly` + `sameSite=lax` + `secure` in prod)
+- **Rate limiting** on login (5/15min) and messages (30/5min)
+- **WhatsApp integration:** stub (simulated) without credentials; Meta Cloud API with `WHATSAPP_TOKEN` + `WHATSAPP_PHONE_NUMBER_ID`
+- No Redis, no Docker in core, no clustering

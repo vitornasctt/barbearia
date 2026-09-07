@@ -6,7 +6,7 @@ export const schema = config.NODE_ENV === 'test' ? config.TEST_SCHEMA : 'public'
 
 export const pool = new pg.Pool({
   connectionString: config.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  ssl: /sslmode=disable/.test(config.DATABASE_URL) ? false : { rejectUnauthorized: false },
   options: `-c search_path=${schema}`,
   max: 10,
 });

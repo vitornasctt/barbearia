@@ -3,7 +3,7 @@ import { hashSenha } from '../auth/senha.js';
 import { pool } from './pool.js';
 import { config } from '../config.js';
 
-const TEMPLATES = [
+export const TEMPLATES = [
   ['confirmacao', 'Confirmação de agendamento',
 `Olá, {{nome_cliente}}!
 Seu agendamento para {{nome_servico}} está confirmado!
