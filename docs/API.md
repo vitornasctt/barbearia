@@ -58,6 +58,8 @@ Prefixo `/api/auth`.
 | POST | `/api/auth/admin/login` | público (rate-limit por IP + credencial) | `{ email: string(email), senha: string(min 1) }` | `200 { usuario: { id, nome, role } }` · `401 CREDENCIAIS_INVALIDAS` |
 | POST | `/api/auth/cliente/login` | público (rate-limit por IP + credencial) | `{ celular: string(min 1), senha: string(min 1) }` | `200 { cliente: { id, nome } }` · `401 CREDENCIAIS_INVALIDAS` |
 | POST | `/api/auth/logout` | público | — | `204` (sessão destruída) |
+| POST | `/api/auth/otp/enviar` | público (rate-limit) | `{ celular:string, proposito:'cadastro'\|'reset' }` | `200 { enviado:true }` sempre (não vaza cadastro) · `429 MUITAS_TENTATIVAS` |
+| POST | `/api/auth/senha/redefinir` | público (rate-limit) | `{ celular:string, codigo:/^\d{6}$/, nova_senha:string(≥6) }` | `200 { cliente:{id,nome} }` + sessão de cliente · `400 OTP_INVALIDO` |
 
 Login de equipe regenera a sessão e grava `usuarioId`, `role`, `equipeExpiraEm` (+12 h).
 
@@ -75,11 +77,12 @@ Prefixo `/api/agenda`. `GET` sem auth; `POST` exige `Origin` confiável.
 | POST | `/api/agenda/lock` | sessão anônima | `{ data:YYYY-MM-DD, horario:"HH:MM", servico_id:int>0, barbeiro_id?:int>0 }` | `200 { ok: true, expira_em: ISO }` · erro `HORARIO_INDISPONIVEL` / `SLOT_TRAVADO` / `SLOT_OCUPADO` |
 | POST | `/api/agenda/lock/renovar` | sessão anônima (dona do lock) | mesmo corpo de `/lock` | `200 { ok: true, expira_em: ISO }` · `409 LOCK_EXPIRADO` |
 | POST | `/api/agenda/lock/liberar` | sessão anônima (dona do lock) | mesmo corpo de `/lock` | `200 { ok: true }` |
-| POST | `/api/agenda/cadastro` | público | `{ nome:string(1-100), celular:string(min 1), email?:string(email), senha?:string(min 6), consentimento: true }` | `201 { cliente: { id, nome } }` · `409 CELULAR_EM_USO` · `400 VALIDACAO` (celular inválido; `email` obrigatório com `senha`) |
+| POST | `/api/agenda/cadastro` | público | `{ nome:string(1-100), celular:string(min 1), consentimento:true, email?, senha?(≥6), codigo?:/^\d{6}$/ }` | `201 { cliente: { id, nome } }` · `409 CELULAR_EM_USO` · `400 VALIDACAO` · `400 OTP_INVALIDO` |
 | POST | `/api/agenda/confirmar` | `requireCliente` | `{ servico_id:int>0, data:YYYY-MM-DD, horario:"HH:MM", observacoes?:string(max 1000), barbeiro_id?:int>0 }` | `201 { agendamento: {...} }` · erro do fluxo de agendamento (`HORARIO_INDISPONIVEL`, `LOCK_EXPIRADO`, `ANTECEDENCIA`, ...) |
 
 `lock` TTL = 5 min. `cadastro` loga o cliente na sessão. `confirmar` emite eventos Socket.io e dispara o worker de mensagens.
 `barbeiro_id` omitido → `configuracao.barbeiro_padrao_id`.
+Em `cadastro`: quando `senha` é enviada, `codigo` passa a ser obrigatório e é verificado (`proposito='cadastro'`); a conta nasce/vira `celular_verificado=true`. Sem `senha`, `codigo` é ignorado.
 
 ---
 
@@ -169,6 +172,7 @@ Tabela `CODIGO → HTTP` (cópia de `src/http/erros.js` `mapaErroHttp`):
 | Código | HTTP |
 | --- | --- |
 | `VALIDACAO` | 400 |
+| `OTP_INVALIDO` | 400 |
 | `NAO_AUTENTICADO` | 401 |
 | `CREDENCIAIS_INVALIDAS` | 401 |
 | `SEM_PERMISSAO` | 403 |
