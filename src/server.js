@@ -10,6 +10,7 @@ import { limparExpirados } from './agenda/locks.js';
 import { processarPendentes } from './services/mensageiro.js';
 import { fecharPool } from './db/pool.js';
 import * as cache from './agenda/cache.js';
+import * as otpRepo from './repos/otp.js';
 
 export function criarServidor() {
   const sessaoMw = criarSessaoMiddleware();
@@ -30,6 +31,7 @@ export function criarServidor() {
 
   const jobMsgs = cron.schedule('* * * * *', async () => {
     try { await processarPendentes(); } catch (e) { console.error('cron mensageiro', e); }
+    try { await otpRepo.limparAntigos({ dias: 1 }); } catch (e) { console.error('cron limpeza otp', e); }
   });
 
   async function parar() {
