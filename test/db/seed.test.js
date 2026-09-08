@@ -28,5 +28,6 @@ test('semear é idempotente e cria a base', async () => {
   assert.equal(srv.rows[0].n, 3);
 
   const tpl = await query('SELECT chave FROM templates_mensagem ORDER BY chave');
-  assert.deepEqual(tpl.rows.map((r) => r.chave), ['confirmacao', 'lembrete_24h', 'pos_atendimento']);
+  assert.deepEqual(tpl.rows.map((r) => r.chave),
+    ['codigo_verificacao', 'confirmacao', 'lembrete_24h', 'pos_atendimento']);
 });
