@@ -72,6 +72,13 @@
       <div>
         <label>E-mail <input type="email" x-model="form.email"></label>
         <label>Senha <input type="password" x-model="form.senha"></label>
+        <div class="otp-linha">
+          <button type="button" @click="enviarCodigo()" :disabled="reenvioEm > 0"
+            x-text="reenvioEm > 0 ? ('Reenviar em ' + reenvioEm + 's') : 'Enviar código'"></button>
+        </div>
+        <label x-show="codigoEnviado">Código recebido
+          <input x-model="form.codigo" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+        </label>
       </div>
     </template>
     <label><input type="checkbox" x-model="form.consentimento" required>

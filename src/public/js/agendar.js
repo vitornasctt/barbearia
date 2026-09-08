@@ -15,7 +15,7 @@ export function montarCalendario(ano, mes, diasLivres) {
   return grade;
 }
 
-function fluxoAgendamento() {
+export function fluxoAgendamento() {
   const dados = JSON.parse(document.getElementById('dados-pagina').textContent);
   const hoje = new Date();
   return {
@@ -35,7 +35,10 @@ function fluxoAgendamento() {
     _heartbeat: null,
     _pollTimer: null,
     _rt: null,
-    form: { nome: '', celular: '', comSenha: false, email: '', senha: '', consentimento: false },
+    form: { nome: '', celular: '', comSenha: false, email: '', senha: '', codigo: '', consentimento: false },
+    codigoEnviado: false,
+    reenvioEm: 0,
+    _reenvioTimer: null,
     erro: '',
 
     init() {
@@ -143,15 +146,39 @@ function fluxoAgendamento() {
 
     voltarParaHorarios() { this.liberar(); this.pararHeartbeat(); clearInterval(this._tickTimer); this.horario = null; this.passo = 3; this.carregarHorarios(); },
 
+    async enviarCodigo() {
+      this.erro = '';
+      if (!this.form.celular) { this.erro = 'Informe o celular primeiro.'; return; }
+      const { ok } = await pedirJson('/api/auth/otp/enviar', {
+        method: 'POST',
+        body: JSON.stringify({ celular: this.form.celular, proposito: 'cadastro' }),
+      });
+      if (!ok) { this.erro = 'Não foi possível enviar o código. Tente em instantes.'; return; }
+      this.codigoEnviado = true;
+      this.reenvioEm = 60;
+      clearInterval(this._reenvioTimer);
+      this._reenvioTimer = setInterval(() => {
+        this.reenvioEm -= 1;
+        if (this.reenvioEm <= 0) clearInterval(this._reenvioTimer);
+      }, 1000);
+    },
+
     async enviarCadastro() {
       this.erro = '';
       if (!this.form.consentimento) { this.erro = 'É preciso aceitar a política de privacidade.'; return; }
       const body = {
         nome: this.form.nome, celular: this.form.celular, consentimento: true,
-        ...(this.form.comSenha ? { email: this.form.email, senha: this.form.senha } : {}),
+        ...(this.form.comSenha
+          ? { email: this.form.email, senha: this.form.senha, codigo: this.form.codigo }
+          : {}),
       };
       const { ok, corpo } = await pedirJson('/api/agenda/cadastro', { method: 'POST', body: JSON.stringify(body) });
-      if (!ok) { this.erro = (corpo && corpo.campos && corpo.campos[0]?.mensagem) || 'Verifique os dados.'; return; }
+      if (!ok) {
+        this.erro = corpo?.erro === 'OTP_INVALIDO'
+          ? 'Código inválido ou expirado.'
+          : ((corpo && corpo.campos && corpo.campos[0]?.mensagem) || 'Verifique os dados.');
+        return;
+      }
       this.passo = 5;
     },
 
