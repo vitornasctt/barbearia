@@ -4,10 +4,10 @@ import { z } from 'zod';
 import { rota } from '../http/async.js';
 import { ErroHttp } from '../http/erros.js';
 import { validarCorpo } from '../http/validar.js';
-import { verificarSenha } from '../auth/senha.js';
+import { verificarSenha, hashSenha } from '../auth/senha.js';
 import { limiteLogin, limiteLoginIp, limiteOtpCelular, limiteOtpIp } from '../auth/rateLimit.js';
 import { normalizarCelular } from '../lib/celular.js';
-import { emitir as emitirOtp } from '../services/otp.js';
+import { emitir as emitirOtp, verificar as verificarOtp } from '../services/otp.js';
 import { enfileirarMensagem } from '../services/mensagens.js';
 import { processarPendentes } from '../services/mensageiro.js';
 import { query } from '../db/pool.js';
@@ -85,6 +85,33 @@ auth.post('/otp/enviar', limiteOtpIp, limiteOtpCelular,
     });
     await processarPendentes({ limite: 5 }).catch((e) => req.log?.error({ e }, 'worker otp'));
     res.json({ enviado: true });
+  }));
+
+auth.post('/senha/redefinir', limiteOtpIp, limiteOtpCelular,
+  validarCorpo(z.object({
+    celular: z.string().min(1),
+    codigo: z.string().regex(/^\d{6}$/),
+    nova_senha: z.string().min(6),
+  })),
+  rota(async (req, res, next) => {
+    let celular;
+    try { celular = normalizarCelular(req.body.celular); }
+    catch { return next(new ErroHttp('OTP_INVALIDO')); }
+
+    const r = await verificarOtp({ celular, proposito: 'reset', codigo: req.body.codigo });
+    if (!r.ok) return next(new ErroHttp('OTP_INVALIDO'));
+
+    const c = await clientes.porCelular(celular);
+    if (!c || !c.senha_hash || !c.celular_verificado) return next(new ErroHttp('OTP_INVALIDO'));
+
+    await clientes.definirSenha(c.id, await hashSenha(req.body.nova_senha));
+    await logs.registrar({ quem_tipo: 'cliente', quem_id: c.id, acao: 'senha_redefinida', ip: req.ip });
+
+    req.session.clienteId = c.id;
+    delete req.session.usuarioId;
+    delete req.session.role;
+    delete req.session.equipeExpiraEm;
+    res.json({ cliente: { id: c.id, nome: c.nome } });
   }));
 
 auth.post('/logout', (req, res) => {
