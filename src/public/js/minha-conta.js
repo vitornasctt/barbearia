@@ -1,7 +1,7 @@
 // src/public/js/minha-conta.js
 import { pedirJson, toast } from './comum.js';
 
-function areaCliente() {
+export function areaCliente() {
   return {
     carregando: true,
     logado: false,
@@ -12,6 +12,10 @@ function areaCliente() {
     semSenha: { nome: '', celular: '', consentimento: false },
     erro: '',
     remarcando: null,   // { id, ano, mes, grade, dia, horarios, horario }
+    modoReset: false,
+    passoReset: 1,
+    reset: { celular: '', codigo: '', senha: '', senha2: '' },
+    erroReset: '',
 
     async init() {
       const { ok } = await pedirJson('/api/cliente/me');
@@ -83,6 +87,41 @@ function areaCliente() {
       if (!ok) { toast(status === 409 ? 'Horário indisponível.' : 'Não foi possível remarcar.', 'erro'); return; }
       toast('Agendamento remarcado.', 'info');
       this.remarcando = null; this.carregarListas();
+    },
+
+    async enviarCodigoReset() {
+      this.erroReset = '';
+      if (!this.reset.celular) { this.erroReset = 'Informe o celular.'; return; }
+      await pedirJson('/api/auth/otp/enviar', {
+        method: 'POST',
+        body: JSON.stringify({ celular: this.reset.celular, proposito: 'reset' }),
+      });
+      // resposta é sempre 200 (não vaza) — avança para o passo do código
+      this.passoReset = 2;
+    },
+
+    async redefinirSenha() {
+      this.erroReset = '';
+      if (this.reset.senha.length < 6) { this.erroReset = 'A senha precisa de ao menos 6 caracteres.'; return; }
+      if (this.reset.senha !== this.reset.senha2) { this.erroReset = 'As senhas não conferem.'; return; }
+      const { ok, corpo } = await pedirJson('/api/auth/senha/redefinir', {
+        method: 'POST',
+        body: JSON.stringify({ celular: this.reset.celular, codigo: this.reset.codigo, nova_senha: this.reset.senha }),
+      });
+      if (!ok) {
+        this.erroReset = corpo?.erro === 'MUITAS_TENTATIVAS'
+          ? 'Muitas tentativas, aguarde alguns minutos.'
+          : 'Código inválido ou expirado.';
+        this.passoReset = 2;
+        return;
+      }
+      this.modoReset = false;
+      this.passoReset = 1;
+      this.reset = { celular: '', codigo: '', senha: '', senha2: '' };
+      this.logado = true;
+      this.aba = 'proximos';
+      this.carregarListas();
+      toast('Senha redefinida. Você está logado.', 'info');
     },
 
     async sair() {

@@ -24,6 +24,32 @@
         Aceito a <a href="/privacidade" target="_blank">política de privacidade</a></label>
       <button @click="entrarSemSenha()">Entrar</button>
     </details>
+
+    <p><button type="button" class="link" @click="modoReset = true" x-show="!modoReset">Esqueci minha senha</button></p>
+
+    <div x-show="modoReset" class="reset-box">
+      <p class="erro-inline" x-show="erroReset" x-text="erroReset"></p>
+
+      <div x-show="passoReset === 1">
+        <label>Celular <input type="tel" x-model="reset.celular"></label>
+        <button type="button" class="btn-primario" @click="enviarCodigoReset()">Enviar código</button>
+      </div>
+
+      <div x-show="passoReset === 2">
+        <label>Código recebido
+          <input x-model="reset.codigo" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+        </label>
+        <button type="button" class="btn-primario" @click="passoReset = 3">Continuar</button>
+        <button type="button" class="voltar" @click="passoReset = 1">← voltar</button>
+      </div>
+
+      <div x-show="passoReset === 3">
+        <label>Nova senha <input type="password" x-model="reset.senha"></label>
+        <label>Repita a senha <input type="password" x-model="reset.senha2"></label>
+        <button type="button" class="btn-primario" @click="redefinirSenha()">Redefinir</button>
+        <button type="button" class="voltar" @click="passoReset = 2">← voltar</button>
+      </div>
+    </div>
   </div>
 
   <div x-show="!carregando && logado">
