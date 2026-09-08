@@ -19,6 +19,7 @@ import { normalizarCelular } from '../lib/celular.js';
 import { requireCliente } from '../auth/middleware.js';
 import { emitirAgendaAtualizada, emitirNovoAgendamento, emitirDashboardTick } from '../realtime/emitir.js';
 import { processarPendentes } from '../services/mensageiro.js';
+import { verificar as verificarOtp } from '../services/otp.js';
 
 const LOCK_TTL_MS = 5 * 60 * 1000;
 
@@ -129,22 +130,45 @@ publicas.post('/cadastro',
     celular: z.string().min(1),
     email: z.string().email().optional(),
     senha: z.string().min(6).optional(),
+    codigo: z.string().regex(/^\d{6}$/).optional(),
     consentimento: z.literal(true),
   })),
   rota(async (req, res, next) => {
     let celular;
     try { celular = normalizarCelular(req.body.celular); }
     catch { const e = new ErroHttp('VALIDACAO'); e.campos = [{ caminho: 'celular', mensagem: 'inválido' }]; return next(e); }
+
     if (req.body.senha && !req.body.email) {
       const e = new ErroHttp('VALIDACAO'); e.campos = [{ caminho: 'email', mensagem: 'obrigatório com senha' }]; return next(e);
     }
+
     const existente = await clientes.porCelular(celular);
     if (existente?.senha_hash) return next(new ErroHttp('CELULAR_EM_USO'));
-    const cliente = existente ?? await clientes.criar({
-      nome: req.body.nome, celular,
-      email: req.body.email ?? null,
-      senha_hash: req.body.senha ? await hashSenha(req.body.senha) : null,
-    });
+
+    if (req.body.senha) {
+      if (!req.body.codigo) {
+        const e = new ErroHttp('VALIDACAO'); e.campos = [{ caminho: 'codigo', mensagem: 'obrigatório para criar senha' }]; return next(e);
+      }
+      const r = await verificarOtp({ celular, proposito: 'cadastro', codigo: req.body.codigo });
+      if (!r.ok) return next(new ErroHttp('OTP_INVALIDO'));
+    }
+
+    let cliente;
+    if (existente) {
+      cliente = existente;
+      if (req.body.senha) {
+        await clientes.definirSenha(cliente.id, await hashSenha(req.body.senha));
+        await clientes.marcarCelularVerificado(cliente.id);
+      }
+    } else {
+      cliente = await clientes.criar({
+        nome: req.body.nome, celular,
+        email: req.body.email ?? null,
+        senha_hash: req.body.senha ? await hashSenha(req.body.senha) : null,
+        celular_verificado: Boolean(req.body.senha),
+      });
+    }
+
     req.session.clienteId = cliente.id;
     delete req.session.usuarioId;
     res.status(201).json({ cliente: { id: cliente.id, nome: cliente.nome } });
