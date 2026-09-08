@@ -1,6 +1,7 @@
 // src/auth/rateLimit.js
 import rateLimit, { MemoryStore } from 'express-rate-limit';
 import { ErroHttp } from '../http/erros.js';
+import { normalizarCelular } from '../lib/celular.js';
 
 // NOTA: express-rate-limit 7.5.1 não exporta o helper `ipKeyGenerator`
 // (só `MemoryStore` e `rateLimit`). Sem ele, usamos `req.ip` diretamente na
@@ -63,7 +64,14 @@ export const limiteOtpCelular = rateLimit({
   store: storeOtpCelular,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
-  keyGenerator: (req) => `${req.ip}:${req.body?.celular ?? ''}`,
+  // Normaliza o celular antes de compor a chave: sem isso cada formatação
+  // (com/sem +55, com máscara) vira um bucket próprio e o cap de 3/10min
+  // passa a valer por variante de formato, não por número.
+  keyGenerator: (req) => {
+    let c = String(req.body?.celular ?? '');
+    try { c = normalizarCelular(c); } catch { /* mantém o valor bruto */ }
+    return `${req.ip}:${c}`;
+  },
   handler: bloqueio,
 });
 

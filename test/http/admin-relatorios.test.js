@@ -65,3 +65,28 @@ test('PUT /templates/:chave e POST /mensagens/enviar => enfileira e worker resol
   assert.equal(lst.body.itens[0].status_envio, 'simulado');
   assert.match(lst.body.itens[0].mensagem_final, /Ana/);
 });
+
+test('GET /mensagens omite o corpo dos códigos de verificação (OTP em claro)', async () => {
+  const a = await admin();
+  // Enfileira um codigo_verificacao (fluxo OTP anônimo) e uma confirmacao real.
+  await request(buildApp()).post('/api/auth/otp/enviar').set('Origin', ORIGIN)
+    .send({ celular: '5511944443333', proposito: 'cadastro' });
+
+  const b = (await query(`SELECT barbeiro_padrao_id AS id FROM configuracao WHERE id=1`)).rows[0].id;
+  const s = (await query(`SELECT id FROM servicos WHERE nome='Corte'`)).rows[0].id;
+  const cli = (await query(`INSERT INTO clientes (nome, celular) VALUES ('Bia','5511944443333') RETURNING id`)).rows[0].id;
+  const ag = (await query(`INSERT INTO agendamentos (cliente_id, servico_id, barbeiro_id, data_agendamento, horario_inicio, horario_fim, status, valor_total)
+    VALUES ($1,$2,$3,'2026-09-11','09:00','09:35','confirmado',10) RETURNING id`, [cli, s, b])).rows[0].id;
+  await a.put('/api/admin/templates/confirmacao').set('Origin', ORIGIN)
+    .send({ titulo: 'Conf', corpo: 'Oi {{nome_cliente}}', ativo: true });
+  await a.post('/api/admin/mensagens/enviar').set('Origin', ORIGIN)
+    .send({ agendamento_id: ag, template_chave: 'confirmacao' });
+
+  const lst = await a.get('/api/admin/mensagens');
+  const otp = lst.body.itens.find((m) => m.template_chave === 'codigo_verificacao');
+  const conf = lst.body.itens.find((m) => m.template_chave === 'confirmacao');
+  assert.ok(otp, 'linha codigo_verificacao presente');
+  assert.equal(otp.mensagem_final, '[código omitido]');
+  assert.ok(!/\d{6}/.test(otp.mensagem_final), 'sem sequência de 6 dígitos');
+  assert.match(conf.mensagem_final, /Bia/);
+});

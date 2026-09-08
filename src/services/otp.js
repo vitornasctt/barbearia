@@ -24,8 +24,13 @@ export async function verificar({ celular, proposito, codigo }) {
   const row = await otpRepo.abertoMaisRecente({ celular, proposito });
   if (!row) return falha('inexistente');
   if (new Date(row.expira_em).getTime() < Date.now()) return falha('expirado');
+  // Pré-checagem barata (early-out); a garantia real vem do RETURNING abaixo.
   if (row.tentativas >= MAX_TENTATIVAS) return falha('tentativas_esgotadas');
-  await otpRepo.incrementarTentativa(row.id);
+  // incrementarTentativa faz UPDATE ... RETURNING: trava a linha e devolve contagens
+  // únicas e monótonas. Re-checar aqui fecha a janela de concorrência (TOCTOU)
+  // antes do bcrypt/marcarVerificado — um palpite errado ainda conta.
+  const t = await otpRepo.incrementarTentativa(row.id);
+  if (t > MAX_TENTATIVAS) return falha('tentativas_esgotadas');
   if (!(await verificarSenha(String(codigo), row.codigo_hash))) return falha('codigo_errado');
   await otpRepo.marcarVerificado(row.id);
   return { ok: true };

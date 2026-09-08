@@ -55,6 +55,18 @@ test('estoura MAX_TENTATIVAS e nem o código certo passa', async () => {
   assert.equal(r.erro, 'OTP_INVALIDO');
 });
 
+test('cap resiste a concorrência: N palpites errados paralelos não abrem janela', async () => {
+  const { codigo } = await emitir({ celular: CEL, proposito: 'cadastro' });
+  const errado = codigo === '000000' ? '111111' : '000000';
+  await Promise.all(
+    Array.from({ length: 8 }, () => verificar({ celular: CEL, proposito: 'cadastro', codigo: errado })),
+  );
+  const r = await verificar({ celular: CEL, proposito: 'cadastro', codigo });
+  assert.equal(r.ok, false);
+  const row = await otpRepo.abertoMaisRecente({ celular: CEL, proposito: 'cadastro' });
+  assert.ok(row.tentativas >= MAX_TENTATIVAS, `tentativas=${row.tentativas}`);
+});
+
 test('código expirado falha', async () => {
   const { codigo } = await emitir({ celular: CEL, proposito: 'cadastro' });
   await query(`UPDATE otp_codigos SET expira_em = now() - interval '1 min' WHERE celular=$1`, [CEL]);

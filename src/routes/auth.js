@@ -7,7 +7,7 @@ import { validarCorpo } from '../http/validar.js';
 import { verificarSenha, hashSenha } from '../auth/senha.js';
 import { limiteLogin, limiteLoginIp, limiteOtpCelular, limiteOtpIp } from '../auth/rateLimit.js';
 import { normalizarCelular } from '../lib/celular.js';
-import { emitir as emitirOtp, verificar as verificarOtp } from '../services/otp.js';
+import { emitir as emitirOtp, verificar as verificarOtp, gerarCodigo } from '../services/otp.js';
 import { enfileirarMensagem } from '../services/mensagens.js';
 import { processarPendentes } from '../services/mensageiro.js';
 import { query } from '../db/pool.js';
@@ -74,7 +74,13 @@ auth.post('/otp/enviar', limiteOtpIp, limiteOtpCelular,
 
     if (proposito === 'reset') {
       const c = await clientes.porCelular(celular);
-      if (!c || !c.senha_hash || !c.celular_verificado) return res.json({ enviado: true });
+      if (!c || !c.senha_hash || !c.celular_verificado) {
+        // Hash descartável antes do return: o ramo que emite paga bcrypt-12
+        // (~300ms); sem isto o delta de tempo vira oráculo de existência de conta.
+        // NÃO "otimizar" removendo — é intencional para equalizar o tempo.
+        await hashSenha(gerarCodigo());
+        return res.json({ enviado: true });
+      }
     }
 
     const { codigo } = await emitirOtp({ celular, proposito });
@@ -99,7 +105,13 @@ auth.post('/senha/redefinir', limiteOtpIp, limiteOtpCelular,
     catch { return next(new ErroHttp('OTP_INVALIDO')); }
 
     const r = await verificarOtp({ celular, proposito: 'reset', codigo: req.body.codigo });
-    if (!r.ok) return next(new ErroHttp('OTP_INVALIDO'));
+    if (!r.ok) {
+      // Equaliza o tempo: verificarOtp retorna rápido quando NÃO há linha aberta
+      // (sem bcrypt). Um hash descartável faz o probe custar o mesmo com ou sem
+      // código em aberto. NÃO remover — é intencional (oráculo por tempo).
+      await hashSenha(gerarCodigo());
+      return next(new ErroHttp('OTP_INVALIDO'));
+    }
 
     const c = await clientes.porCelular(celular);
     if (!c || !c.senha_hash || !c.celular_verificado) return next(new ErroHttp('OTP_INVALIDO'));
@@ -107,6 +119,9 @@ auth.post('/senha/redefinir', limiteOtpIp, limiteOtpCelular,
     await clientes.definirSenha(c.id, await hashSenha(req.body.nova_senha));
     await logs.registrar({ quem_tipo: 'cliente', quem_id: c.id, acao: 'senha_redefinida', ip: req.ip });
 
+    // Fluxo de recuperação: regenera a sessão para não herdar um id plantado
+    // (fixação de sessão). Sem estado anônimo/lock em /minha-conta, é seguro aqui.
+    await new Promise((ok, ko) => req.session.regenerate((e) => (e ? ko(e) : ok())));
     req.session.clienteId = c.id;
     delete req.session.usuarioId;
     delete req.session.role;

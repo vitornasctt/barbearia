@@ -41,6 +41,22 @@ test('reset feliz: nova senha passa a valer, antiga não', async () => {
   assert.equal(velha.status, 401);
 });
 
+test('reset regenera a sessão (fixação) e a sessão nova continua válida', async () => {
+  const app = buildApp();
+  const celular = '5511933332221';
+  await contaVerificada(celular, 'antiga123');
+  const codigo = await codigoReset(app, celular);
+
+  const agente = request.agent(app);
+  const r = await agente.post('/api/auth/senha/redefinir').set('Origin', ORIGIN)
+    .send({ celular, codigo, nova_senha: 'novasenha1' });
+  assert.equal(r.status, 200);
+  // a sessão criada após o regenerate() deve autenticar o cliente
+  const me = await agente.get('/api/cliente/me');
+  assert.equal(me.status, 200);
+  assert.equal(me.body.cliente?.nome ?? me.body.nome, 'Ana');
+});
+
 test('reset registra em logs_acesso', async () => {
   const app = buildApp();
   const celular = '5511933331111';

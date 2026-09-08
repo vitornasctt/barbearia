@@ -10,7 +10,8 @@ export async function listar({ agendamento_id, status, page = 1, tamanho = 20 } 
   const tot = await query(`SELECT count(*)::int AS n FROM mensagens_whatsapp ${where}`, params);
   params.push(tamanho, (page - 1) * tamanho);
   const r = await query(
-    `SELECT id, agendamento_id, template_chave, telefone_destino, mensagem_final,
+    `SELECT id, agendamento_id, template_chave, telefone_destino,
+            CASE WHEN template_chave = 'codigo_verificacao' THEN '[código omitido]' ELSE mensagem_final END AS mensagem_final,
             status_envio, erro, enviado_em, created_at
      FROM mensagens_whatsapp ${where}
      ORDER BY created_at DESC LIMIT $${params.length - 1} OFFSET $${params.length}`, params);

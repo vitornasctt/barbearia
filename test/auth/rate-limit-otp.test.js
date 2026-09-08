@@ -23,6 +23,19 @@ test('4ª chamada de otp/enviar para o mesmo celular em 10 min → 429', async (
   assert.equal(quarta.body.erro, 'MUITAS_TENTATIVAS');
 });
 
+test('mesmo número em formatos diferentes cai no mesmo bucket → 4ª → 429', async () => {
+  const app = buildApp();
+  const enviar = (celular) => request(app).post('/api/auth/otp/enviar')
+    .set('Origin', ORIGIN)
+    .send({ celular, proposito: 'cadastro' });
+  assert.equal((await enviar('11999990000')).status, 200);
+  assert.equal((await enviar('(11) 99999-0000')).status, 200);
+  assert.equal((await enviar('5511999990000')).status, 200);
+  const quarta = await enviar('+55 11 99999-0000');
+  assert.equal(quarta.status, 429);
+  assert.equal(quarta.body.erro, 'MUITAS_TENTATIVAS');
+});
+
 test('resetRateLimit zera o storeOtp entre casos', async () => {
   const app = buildApp();
   const r = await request(app).post('/api/auth/otp/enviar')

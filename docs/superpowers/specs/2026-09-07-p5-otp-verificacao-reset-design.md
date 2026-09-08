@@ -423,7 +423,7 @@ compartilhado — regra herdada). No CI, `postgres:17` isolado.
   `mensagens_whatsapp.mensagem_final` (regex `/\b(\d{6})\b/`), então
   `POST /api/agenda/cadastro` com `senha`+`codigo` → `201`, cliente com
   `celular_verificado=true`
-- cadastro com `senha` sem `codigo` → `422 VALIDACAO`
+- cadastro com `senha` sem `codigo` → `400 VALIDACAO`
 - cadastro com `senha` + `codigo` errado → `400 OTP_INVALIDO`, nada criado
 - cadastro **sem** `senha` → `201` sem exigir `codigo` (regressão do fluxo
   anônimo)
